@@ -12,54 +12,55 @@
             --secondary-bg: var(--tg-theme-secondary-bg-color, #2c2c2e);
             --hint-color: var(--tg-theme-hint-color, #999999);
         }
-        body { font-family: -apple-system, system-ui, sans-serif; background-color: #000; color: var(--text-color); margin: 0; padding: 12px; }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: #000; color: var(--text-color); margin: 0; padding: 10px; box-sizing: border-box; }
 
-        /* Уменьшили отступы между секциями с 16px до 8px */
-        .section { background: var(--bg-color); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
-
-        .label { font-size: 11px; font-weight: bold; color: var(--button-color); text-transform: uppercase; margin-bottom: 8px; display: block; }
+        /* Компактные секции */
+        .section { background: var(--bg-color); border-radius: 12px; padding: 10px; margin-bottom: 6px; }
+        .label { font-size: 11px; font-weight: bold; color: var(--button-color); text-transform: uppercase; margin-bottom: 6px; display: block; }
 
         input {
-            width: 100%; background: var(--secondary-bg); border: none; border-radius: 10px;
-            padding: 12px; font-size: 16px; color: var(--text-color); margin-bottom: 8px; box-sizing: border-box;
+            width: 100%; background: var(--secondary-bg); border: none; border-radius: 8px;
+            padding: 10px; font-size: 16px; color: var(--text-color); margin-bottom: 6px; box-sizing: border-box;
         }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .item { background: var(--secondary-bg); border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; border: 2px solid transparent; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .item { background: var(--secondary-bg); border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; font-size: 13px; }
         .item.active { border-color: var(--button-color); background: rgba(36, 129, 204, 0.2); }
 
+        .calendar-title { font-size: 14px; font-weight: 500; text-align: center; margin-bottom: 8px; color: var(--text-color); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
-        .calendar-day { padding: 6px 0; font-size: 13px; border-radius: 8px; cursor: pointer; background: var(--secondary-bg); border: 1px solid transparent; }
-        .calendar-day.active { border-color: var(--button-color); background: rgba(36, 129, 204, 0.2); }
-        .calendar-day.disabled { opacity: 0.2; cursor: default; pointer-events: none; }
-        .day-header { font-size: 10px; color: var(--hint-color); padding-bottom: 4px; }
+        .calendar-day { padding: 5px 0; font-size: 12px; border-radius: 6px; cursor: pointer; background: var(--secondary-bg); }
+        .calendar-day.active { background: var(--button-color); color: white; }
+        .calendar-day.disabled { opacity: 0.15; cursor: default; pointer-events: none; }
+        .day-header { font-size: 9px; color: var(--hint-color); padding-bottom: 2px; }
 
-        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
-        .time-slot { background: var(--secondary-bg); padding: 8px 4px; border-radius: 8px; text-align: center; font-size: 13px; cursor: pointer; }
+        .time-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px; }
+        .time-slot { background: var(--secondary-bg); padding: 6px 2px; border-radius: 6px; text-align: center; font-size: 12px; cursor: pointer; }
         .time-slot.active { background: var(--button-color); color: white; }
-        .time-slot.disabled { opacity: 0.2; cursor: default; pointer-events: none; }
+        .time-slot.disabled { opacity: 0.15; cursor: default; pointer-events: none; }
     </style>
 </head>
 <body>
     <div class="section">
         <span class="label">Услуга</span>
         <div class="grid">
-            <div class="item" onclick="selectType(this, 'service', 'Полный комплекс')">🛁 Полный</div>
-            <div class="item" onclick="selectType(this, 'service', 'Гигиена')">✂️ Гигиена</div>
-            <div class="item" onclick="selectType(this, 'service', 'Когти')">🐾 Когти</div>
-            <div class="item" onclick="selectType(this, 'service', 'Мытьё')">🧼 Мытьё</div>
+            <div class="item" onclick="sel(this, 'service', 'Комплекс')">🛁 Комплекс</div>
+            <div class="item" onclick="sel(this, 'service', 'Линька')">💨 Линька</div>
+            <div class="item" onclick="sel(this, 'service', 'Гигиена')">✂️ Гигиена</div>
+            <div class="item" onclick="sel(this, 'service', 'Когти')">🐾 Когти</div>
         </div>
     </div>
 
     <div class="section">
-        <span class="label">Питомец и телефон</span>
-        <input type="text" id="breed" placeholder="Порода">
-        <input type="text" id="pet_name" placeholder="Кличка">
-        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__">
+        <span class="label">Питомец и связь</span>
+        <input type="text" id="breed" placeholder="Порода *" oninput="val()">
+        <input type="text" id="pet_name" placeholder="Кличка *" oninput="val()">
+        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__ *" oninput="val()">
     </div>
 
     <div class="section">
         <span class="label">Дата и время</span>
+        <div class="calendar-title" id="month-name"></div>
         <div class="calendar-grid" id="calendar">
             <div class="day-header">Пн</div><div class="day-header">Вт</div><div class="day-header">Ср</div>
             <div class="day-header">Чт</div><div class="day-header">Пт</div><div class="day-header">Сб</div><div class="day-header">Вс</div>
@@ -69,89 +70,82 @@
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        tg.ready(); tg.expand();
 
-        let data = { service: '', date: null, time: '', dayNum: null };
+        let form = { service: '', date: '', time: '', dNum: null };
         const now = new Date();
+        const months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
+        document.getElementById('month-name').innerText = months[now.getMonth()] + " " + now.getFullYear();
 
         // Маска телефона
-        document.getElementById('phone').addEventListener('input', function (e) {
+        document.getElementById('phone').addEventListener('input', (e) => {
             let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
             e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + (x[3] ? ') ' + x[3] : '') + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
         });
 
-        // Генерация календаря
+        // Календарь
         const cal = document.getElementById('calendar');
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const startDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay() || 7;
 
         for (let i = 1; i < startDay; i++) cal.appendChild(document.createElement('div'));
-
         for (let d = 1; d <= daysInMonth; d++) {
-            let dayEl = document.createElement('div');
-            dayEl.className = 'calendar-day';
-            dayEl.innerText = d;
-            if (d < now.getDate()) dayEl.classList.add('disabled');
-            else {
-                dayEl.onclick = () => {
-                    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('active'));
-                    dayEl.classList.add('active');
-                    data.date = `${d}.${now.getMonth() + 1}`;
-                    data.dayNum = d;
-                    renderTimeSlots();
-                    updateBtn();
-                };
-            }
-            cal.appendChild(dayEl);
+            let el = document.createElement('div');
+            el.className = 'calendar-day' + (d < now.getDate() ? ' disabled' : '');
+            el.innerText = d;
+            el.onclick = () => {
+                document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('active'));
+                el.classList.add('active');
+                form.date = `${d}.${now.getMonth() + 1}`;
+                form.dNum = d;
+                renderTimes();
+                val();
+            };
+            cal.appendChild(el);
         }
 
-        function renderTimeSlots() {
-            const slotsContainer = document.getElementById('time_slots');
-            slotsContainer.innerHTML = '';
-            data.time = ''; // Сбрасываем время при смене даты
-
+        function renderTimes() {
+            const container = document.getElementById('time_slots');
+            container.innerHTML = '';
             for (let h = 10; h <= 19; h++) {
                 let s = document.createElement('div');
-                s.className = 'time-slot';
+                s.className = 'time-slot' + (form.dNum === now.getDate() && h <= now.getHours() ? ' disabled' : '');
                 s.innerText = h + ':00';
-
-                // Проверка: если день сегодня и час уже прошел или текущий
-                if (data.dayNum === now.getDate() && h <= now.getHours()) {
-                    s.classList.add('disabled');
-                } else {
-                    s.onclick = () => {
-                        document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('active'));
-                        s.classList.add('active');
-                        data.time = s.innerText;
-                        updateBtn();
-                    };
-                }
-                slotsContainer.appendChild(s);
+                s.onclick = () => {
+                    document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('active'));
+                    s.classList.add('active');
+                    form.time = s.innerText;
+                    val();
+                };
+                container.appendChild(s);
             }
         }
 
-        function selectType(el, type, val) {
+        function sel(el, type, v) {
             el.parentElement.querySelectorAll('.item').forEach(i => i.classList.remove('active'));
             el.classList.add('active');
-            data[type] = val;
-            updateBtn();
+            form[type] = v;
+            val();
         }
 
-        function updateBtn() {
-            if (data.service && data.date && data.time) tg.MainButton.show();
-            else tg.MainButton.hide();
+        function val() {
+            const isOk = form.service && form.date && form.time &&
+                         document.getElementById('breed').value &&
+                         document.getElementById('pet_name').value &&
+                         document.getElementById('phone').value.length >= 18;
+            isOk ? tg.MainButton.show() : tg.MainButton.hide();
         }
 
+        tg.MainButton.text = "Записаться";
         tg.MainButton.onClick(() => {
-            const res = {
-                service: data.service,
+            tg.sendData(JSON.stringify({
+                service: form.service,
                 breed: document.getElementById('breed').value,
                 pet_name: document.getElementById('pet_name').value,
                 phone: document.getElementById('phone').value,
-                date_time: data.date + " в " + data.time
-            };
-            tg.sendData(JSON.stringify(res));
+                date_time: form.date + " в " + form.time
+            }));
         });
     </script>
 </body>
