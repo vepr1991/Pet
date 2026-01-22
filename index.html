@@ -6,43 +6,53 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: var(--tg-theme-bg-color, #1c1c1d);
-            --text-color: var(--tg-theme-text-color, #ffffff);
+            --bg-color: var(--tg-theme-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #000000);
             --button-color: var(--tg-theme-button-color, #2481cc);
-            --secondary-bg: var(--tg-theme-secondary-bg-color, #2c2c2e);
+            --secondary-bg: var(--tg-theme-secondary-bg-color, #f0f0f0);
             --hint-color: var(--tg-theme-hint-color, #999999);
         }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: #000; color: var(--text-color); margin: 0; padding: 12px; }
-        .section { background: var(--bg-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-        .label { font-size: 12px; font-weight: bold; color: var(--button-color); text-transform: uppercase; margin-bottom: 10px; display: block; }
+        .section { background: var(--bg-color); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+        .label { font-size: 13px; font-weight: bold; color: var(--button-color); text-transform: uppercase; margin-bottom: 10px; display: block; }
 
-        /* Тип питомца */
-        .pet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
-        .pet-item { background: var(--secondary-bg); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
-        .pet-item.active { border-color: var(--button-color); background: rgba(36, 129, 204, 0.2); }
+        /* Поля ввода (минимум 16px для предотвращения зума) */
+        input {
+            width: 100%; background: var(--secondary-bg); border: none; border-radius: 10px;
+            padding: 14px; font-size: 17px; color: var(--text-color); margin-bottom: 8px; box-sizing: border-box;
+            -webkit-appearance: none;
+        }
+
+        .pet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+        .pet-item { background: var(--secondary-bg); border-radius: 12px; padding: 10px; text-align: center; border: 2px solid transparent; cursor: pointer; }
+        .pet-item.active { border-color: var(--button-color); background: rgba(36, 129, 204, 0.1); }
         .pet-item span { font-size: 24px; display: block; margin-bottom: 4px; }
 
-        input { width: 100%; background: var(--secondary-bg); border: none; border-radius: 10px; padding: 12px; font-size: 16px; color: var(--text-color); margin-bottom: 8px; box-sizing: border-box; }
-
-        /* Услуги */
-        .service-cat { background: var(--secondary-bg); border-radius: 10px; padding: 12px; margin-bottom: 6px; cursor: pointer; border: 2px solid transparent; display: flex; justify-content: space-between; align-items: center; }
-        .service-cat.active { border-color: var(--button-color); }
-        .sub-services { display: none; padding: 5px 0 10px 10px; flex-direction: column; gap: 8px; }
-        .sub-item { padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 14px; cursor: pointer; border-left: 3px solid transparent; }
+        .service-cat { background: var(--secondary-bg); border-radius: 10px; padding: 14px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-weight: 500; cursor: pointer; }
+        .sub-services { display: none; flex-direction: column; gap: 8px; padding: 4px 0 10px 10px; }
+        .sub-item { padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px; font-size: 15px; cursor: pointer; border-left: 3px solid transparent; }
         .sub-item.selected { border-left-color: var(--button-color); background: rgba(36, 129, 204, 0.1); }
 
-        /* Календарь (как в прошлом шаге) */
-        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
-        .calendar-day { padding: 8px 0; font-size: 13px; border-radius: 8px; cursor: pointer; background: var(--secondary-bg); }
-        .calendar-day.active { background: var(--button-color); }
-        .calendar-day.disabled { opacity: 0.1; pointer-events: none; }
-        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
-        .time-slot { background: var(--secondary-bg); padding: 8px 0; border-radius: 8px; text-align: center; font-size: 13px; cursor: pointer; }
-        .time-slot.active { background: var(--button-color); }
+        /* Календарь */
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .cal-btn {
+            background: var(--secondary-bg); border: none; color: var(--button-color);
+            padding: 8px 16px; border-radius: 8px; font-size: 20px; font-weight: bold; cursor: pointer;
+        }
+        .calendar-title { font-size: 17px; font-weight: 700; color: var(--text-color); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .calendar-day { padding: 10px 0; font-size: 15px; border-radius: 8px; background: var(--secondary-bg); cursor: pointer; }
+        .calendar-day.active { background: var(--button-color); color: white; }
+        .calendar-day.disabled { opacity: 0.15; pointer-events: none; }
+        .day-header { font-size: 11px; color: var(--hint-color); padding-bottom: 5px; text-transform: uppercase; }
+
+        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
+        .time-slot { background: var(--secondary-bg); padding: 12px 0; border-radius: 8px; text-align: center; font-size: 14px; cursor: pointer; }
+        .time-slot.active { background: var(--button-color); color: white; }
+        .time-slot.disabled { opacity: 0.15; pointer-events: none; }
     </style>
 </head>
-<body onclick="document.querySelectorAll('input').forEach(i => i.blur())">
+<body>
     <div class="section">
         <span class="label">Кто ваш любимец?</span>
         <div class="pet-grid">
@@ -50,47 +60,48 @@
             <div class="pet-item" onclick="selPet(this, 'Кошка')"><span>🐱</span>Кошка</div>
             <div class="pet-item" onclick="selPet(this, 'Другой')"><span>🐰</span>Другой</div>
         </div>
-        <input type="text" id="breed" placeholder="Порода (например, Шпиц) *" oninput="val()">
-        <input type="text" id="pet_name" placeholder="Кличка *" oninput="val()">
+        <input type="text" id="breed" placeholder="Порода (напр. Шпиц) *" oninput="val()">
+        <input type="text" id="pet_name" placeholder="Кличка питомца *" oninput="val()">
     </div>
 
     <div class="section">
         <span class="label">Выберите услугу</span>
-        <div id="services-list">
-            <div class="service-cat" onclick="toggleSub(this)">
-                <span>🛁 Комплекс</span><span>▼</span>
-            </div>
-            <div class="sub-services">
-                <div class="sub-item" onclick="selSub(this, 'Комплекс: Стрижка + Мытье')">Полный комплекс (Стрижка + Мытье)</div>
-                <div class="sub-item" onclick="selSub(this, 'Комплекс: Экспресс-линька')">Экспресс-линька</div>
-            </div>
-
-            <div class="service-cat" onclick="toggleSub(this)">
-                <span>✂️ Гигиена</span><span>▼</span>
-            </div>
-            <div class="sub-services">
-                <div class="sub-item" onclick="selSub(this, 'Гигиена: Стандарт')">Гигиеническая стрижка</div>
-                <div class="sub-item" onclick="selSub(this, 'Гигиена: Когти + Уши')">Только когти и уши</div>
-            </div>
+        <div class="service-cat" onclick="toggleSub(this)"><span>🛁 Комплекс</span><span>▼</span></div>
+        <div class="sub-services">
+            <div class="sub-item" onclick="selSub(this, 'Комплекс: Полный')">Полный (Стрижка + Мытье)</div>
+            <div class="sub-item" onclick="selSub(this, 'Комплекс: Линька')">Экспресс-линька</div>
+        </div>
+        <div class="service-cat" onclick="toggleSub(this)"><span>✂️ Гигиена</span><span>▼</span></div>
+        <div class="sub-services">
+            <div class="sub-item" onclick="selSub(this, 'Гигиена: Стандарт')">Гигиеническая стрижка</div>
+            <div class="sub-item" onclick="selSub(this, 'Гигиена: Когти + Уши')">Только когти и уши</div>
         </div>
     </div>
 
     <div class="section">
-        <span class="label">Контакт и дата</span>
+        <span class="label">Контакт и время</span>
         <input type="tel" id="phone" placeholder="+7 (___) ___-__-__ *" oninput="val()">
+
         <div class="cal-header">
-            <div id="month-name" style="font-weight: bold;"></div>
+            <button type="button" class="cal-btn" onclick="changeMonth(-1)">‹</button>
+            <div class="calendar-title" id="month-name"></div>
+            <button type="button" class="cal-btn" onclick="changeMonth(1)">›</button>
         </div>
-        <div class="calendar-grid" id="calendar"></div>
+
+        <div class="calendar-grid" id="calendar">
+            <div class="day-header">Пн</div><div class="day-header">Вт</div><div class="day-header">Ср</div>
+            <div class="day-header">Чт</div><div class="day-header">Пт</div><div class="day-header">Сб</div><div class="day-header">Вс</div>
+        </div>
         <div class="time-grid" id="time_slots"></div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.expand();
+        tg.ready(); tg.expand();
 
-        let form = { pet: '', breed: '', name: '', service: '', date: '', time: '', dNum: null };
+        let form = { pet: '', breed: '', name: '', service: '', dateStr: '', time: '', d: null, m: new Date().getMonth(), y: new Date().getFullYear() };
         const now = new Date();
+        const months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 
         function selPet(el, val) {
             document.querySelectorAll('.pet-item').forEach(i => i.classList.remove('active'));
@@ -113,25 +124,41 @@
             validate();
         }
 
-        // Календарь и время (логика из прошлых шагов с исправленным форматом даты)
-        const months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-        document.getElementById('month-name').innerText = months[now.getMonth()];
-        const cal = document.getElementById('calendar');
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        for (let d = 1; d <= daysInMonth; d++) {
-            let day = document.createElement('div');
-            day.className = 'calendar-day' + (d < now.getDate() ? ' disabled' : '');
-            day.innerText = d;
-            day.onclick = () => {
-                document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('active'));
-                day.classList.add('active');
-                let month = (now.getMonth() + 1).toString().padStart(2, '0');
-                form.date = `${d.toString().padStart(2, '0')}.${month}.${now.getFullYear().toString().slice(-2)}`;
-                form.dNum = d;
-                renderTimes();
-                validate();
-            };
-            cal.appendChild(day);
+        function changeMonth(dir) {
+            let next = new Date(form.y, form.m + dir, 1);
+            if (next < new Date(now.getFullYear(), now.getMonth(), 1)) return;
+            form.m = next.getMonth();
+            form.y = next.getFullYear();
+            renderCal();
+        }
+
+        function renderCal() {
+            document.getElementById('month-name').innerText = months[form.m] + " " + form.y;
+            const cal = document.getElementById('calendar');
+            cal.querySelectorAll('.calendar-day, .empty').forEach(e => e.remove());
+
+            const days = new Date(form.y, form.m + 1, 0).getDate();
+            const start = new Date(form.y, form.m, 1).getDay() || 7;
+
+            for (let i = 1; i < start; i++) {
+                let e = document.createElement('div'); e.className = 'empty'; cal.appendChild(e);
+            }
+
+            for (let d = 1; d <= days; d++) {
+                let el = document.createElement('div');
+                el.className = 'calendar-day';
+                if (form.y === now.getFullYear() && form.m === now.getMonth() && d < now.getDate()) el.classList.add('disabled');
+                el.innerText = d;
+                el.onclick = () => {
+                    document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('active'));
+                    el.classList.add('active');
+                    form.dateStr = `${d.toString().padStart(2,'0')}.${(form.m+1).toString().padStart(2,'0')}.${form.y.toString().slice(-2)}`;
+                    form.d = d;
+                    renderTimes();
+                    validate();
+                };
+                cal.appendChild(el);
+            }
         }
 
         function renderTimes() {
@@ -139,7 +166,8 @@
             container.innerHTML = '';
             for (let h = 10; h <= 19; h++) {
                 let s = document.createElement('div');
-                s.className = 'time-slot' + (form.dNum === now.getDate() && h <= now.getHours() ? ' disabled' : '');
+                s.className = 'time-slot';
+                if (form.y === now.getFullYear() && form.m === now.getMonth() && form.d === now.getDate() && h <= now.getHours()) s.classList.add('disabled');
                 s.innerText = h + ':00';
                 s.onclick = () => {
                     document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('active'));
@@ -151,7 +179,6 @@
             }
         }
 
-        // Маска телефона и валидация
         document.getElementById('phone').addEventListener('input', (e) => {
             let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
             e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + (x[3] ? ') ' + x[3] : '') + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
@@ -159,10 +186,7 @@
         });
 
         function validate() {
-            const breed = document.getElementById('breed').value;
-            const name = document.getElementById('pet_name').value;
-            const phone = document.getElementById('phone').value;
-            const isOk = form.pet && breed && name && form.service && form.date && form.time && phone.length >= 18;
+            const isOk = form.pet && document.getElementById('breed').value && document.getElementById('pet_name').value && form.service && form.dateStr && form.time && document.getElementById('phone').value.length >= 18;
             isOk ? tg.MainButton.show() : tg.MainButton.hide();
         }
 
@@ -174,9 +198,11 @@
                 pet_name: document.getElementById('pet_name').value,
                 service: form.service,
                 phone: document.getElementById('phone').value,
-                date_time: form.date + " в " + form.time
+                date_time: form.dateStr + " в " + form.time
             }));
         });
+
+        renderCal();
     </script>
 </body>
 </html>
