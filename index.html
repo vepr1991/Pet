@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); margin: 0; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        .service-btn { background: var(--tg-theme-secondary-bg-color); border: none; padding: 10px; margin: 5px 0; width: 100%; border-radius: 8px; cursor: pointer; color: var(--tg-theme-text-color); }
+        .service-btn.active { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+    </style>
+</head>
+<body>
+    <div class="form-group">
+        <label>Услуга</label>
+        <div id="services">
+            <button class="service-btn" onclick="setService(this, 'Полный комплекс')">Полный комплекс</button>
+            <button class="service-btn" onclick="setService(this, 'Гигиена')">Гигиена</button>
+            <button class="service-btn" onclick="setService(this, 'Стрижка когтей')">Стрижка когтей</button>
+            <button class="service-btn" onclick="setService(this, 'Мытьё')">Мытьё</button>
+        </div>
+    </div>
+    <div class="form-group"><label>Порода</label><input type="text" id="breed" placeholder="Напр. Шпиц"></div>
+    <div class="form-group"><label>Кличка</label><input type="text" id="pet_name"></div>
+    <div class="form-group"><label>Телефон</label><input type="tel" id="phone" placeholder="+7..."></div>
+    <div class="form-group"><label>Дата и время</label><input type="datetime-local" id="date_time"></div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        let selectedService = "";
+        tg.expand();
+        tg.MainButton.text = "Записаться";
+
+        function setService(btn, name) {
+            document.querySelectorAll('.service-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedService = name;
+            tg.MainButton.show();
+        }
+
+        tg.onEvent('mainButtonClicked', function(){
+            const data = {
+                service: selectedService,
+                breed: document.getElementById('breed').value,
+                pet_name: document.getElementById('pet_name').value,
+                phone: document.getElementById('phone').value,
+                date_time: document.getElementById('date_time').value
+            };
+            tg.sendData(JSON.stringify(data));
+        });
+    </script>
+</body>
+</html>
