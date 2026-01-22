@@ -12,97 +12,126 @@
             --secondary-bg: var(--tg-theme-secondary-bg-color, #2c2c2e);
             --hint-color: var(--tg-theme-hint-color, #999999);
         }
-        body { font-family: -apple-system, system-ui, sans-serif; background-color: #000; color: var(--text-color); margin: 0; padding: 10px; box-sizing: border-box; }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: #000; color: var(--text-color); margin: 0; padding: 12px; }
+        .section { background: var(--bg-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .label { font-size: 12px; font-weight: bold; color: var(--button-color); text-transform: uppercase; margin-bottom: 10px; display: block; }
 
-        /* Компактные секции */
-        .section { background: var(--bg-color); border-radius: 12px; padding: 10px; margin-bottom: 6px; }
-        .label { font-size: 11px; font-weight: bold; color: var(--button-color); text-transform: uppercase; margin-bottom: 6px; display: block; }
+        /* Тип питомца */
+        .pet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+        .pet-item { background: var(--secondary-bg); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .pet-item.active { border-color: var(--button-color); background: rgba(36, 129, 204, 0.2); }
+        .pet-item span { font-size: 24px; display: block; margin-bottom: 4px; }
 
-        input {
-            width: 100%; background: var(--secondary-bg); border: none; border-radius: 8px;
-            padding: 10px; font-size: 16px; color: var(--text-color); margin-bottom: 6px; box-sizing: border-box;
-        }
+        input { width: 100%; background: var(--secondary-bg); border: none; border-radius: 10px; padding: 12px; font-size: 16px; color: var(--text-color); margin-bottom: 8px; box-sizing: border-box; }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-        .item { background: var(--secondary-bg); border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; font-size: 13px; }
-        .item.active { border-color: var(--button-color); background: rgba(36, 129, 204, 0.2); }
+        /* Услуги */
+        .service-cat { background: var(--secondary-bg); border-radius: 10px; padding: 12px; margin-bottom: 6px; cursor: pointer; border: 2px solid transparent; display: flex; justify-content: space-between; align-items: center; }
+        .service-cat.active { border-color: var(--button-color); }
+        .sub-services { display: none; padding: 5px 0 10px 10px; flex-direction: column; gap: 8px; }
+        .sub-item { padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 14px; cursor: pointer; border-left: 3px solid transparent; }
+        .sub-item.selected { border-left-color: var(--button-color); background: rgba(36, 129, 204, 0.1); }
 
-        .calendar-title { font-size: 14px; font-weight: 500; text-align: center; margin-bottom: 8px; color: var(--text-color); }
+        /* Календарь (как в прошлом шаге) */
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
-        .calendar-day { padding: 5px 0; font-size: 12px; border-radius: 6px; cursor: pointer; background: var(--secondary-bg); }
-        .calendar-day.active { background: var(--button-color); color: white; }
-        .calendar-day.disabled { opacity: 0.15; cursor: default; pointer-events: none; }
-        .day-header { font-size: 9px; color: var(--hint-color); padding-bottom: 2px; }
-
-        .time-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px; }
-        .time-slot { background: var(--secondary-bg); padding: 6px 2px; border-radius: 6px; text-align: center; font-size: 12px; cursor: pointer; }
-        .time-slot.active { background: var(--button-color); color: white; }
-        .time-slot.disabled { opacity: 0.15; cursor: default; pointer-events: none; }
+        .calendar-day { padding: 8px 0; font-size: 13px; border-radius: 8px; cursor: pointer; background: var(--secondary-bg); }
+        .calendar-day.active { background: var(--button-color); }
+        .calendar-day.disabled { opacity: 0.1; pointer-events: none; }
+        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+        .time-slot { background: var(--secondary-bg); padding: 8px 0; border-radius: 8px; text-align: center; font-size: 13px; cursor: pointer; }
+        .time-slot.active { background: var(--button-color); }
     </style>
 </head>
-<body>
+<body onclick="document.querySelectorAll('input').forEach(i => i.blur())">
     <div class="section">
-        <span class="label">Услуга</span>
-        <div class="grid">
-            <div class="item" onclick="sel(this, 'service', 'Комплекс')">🛁 Комплекс</div>
-            <div class="item" onclick="sel(this, 'service', 'Линька')">💨 Линька</div>
-            <div class="item" onclick="sel(this, 'service', 'Гигиена')">✂️ Гигиена</div>
-            <div class="item" onclick="sel(this, 'service', 'Когти')">🐾 Когти</div>
+        <span class="label">Кто ваш любимец?</span>
+        <div class="pet-grid">
+            <div class="pet-item" onclick="selPet(this, 'Собака')"><span>🐶</span>Собака</div>
+            <div class="pet-item" onclick="selPet(this, 'Кошка')"><span>🐱</span>Кошка</div>
+            <div class="pet-item" onclick="selPet(this, 'Другой')"><span>🐰</span>Другой</div>
         </div>
-    </div>
-
-    <div class="section">
-        <span class="label">Питомец и связь</span>
-        <input type="text" id="breed" placeholder="Порода *" oninput="val()">
+        <input type="text" id="breed" placeholder="Порода (например, Шпиц) *" oninput="val()">
         <input type="text" id="pet_name" placeholder="Кличка *" oninput="val()">
-        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__ *" oninput="val()">
     </div>
 
     <div class="section">
-        <span class="label">Дата и время</span>
-        <div class="calendar-title" id="month-name"></div>
-        <div class="calendar-grid" id="calendar">
-            <div class="day-header">Пн</div><div class="day-header">Вт</div><div class="day-header">Ср</div>
-            <div class="day-header">Чт</div><div class="day-header">Пт</div><div class="day-header">Сб</div><div class="day-header">Вс</div>
+        <span class="label">Выберите услугу</span>
+        <div id="services-list">
+            <div class="service-cat" onclick="toggleSub(this)">
+                <span>🛁 Комплекс</span><span>▼</span>
+            </div>
+            <div class="sub-services">
+                <div class="sub-item" onclick="selSub(this, 'Комплекс: Стрижка + Мытье')">Полный комплекс (Стрижка + Мытье)</div>
+                <div class="sub-item" onclick="selSub(this, 'Комплекс: Экспресс-линька')">Экспресс-линька</div>
+            </div>
+
+            <div class="service-cat" onclick="toggleSub(this)">
+                <span>✂️ Гигиена</span><span>▼</span>
+            </div>
+            <div class="sub-services">
+                <div class="sub-item" onclick="selSub(this, 'Гигиена: Стандарт')">Гигиеническая стрижка</div>
+                <div class="sub-item" onclick="selSub(this, 'Гигиена: Когти + Уши')">Только когти и уши</div>
+            </div>
         </div>
+    </div>
+
+    <div class="section">
+        <span class="label">Контакт и дата</span>
+        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__ *" oninput="val()">
+        <div class="cal-header">
+            <div id="month-name" style="font-weight: bold;"></div>
+        </div>
+        <div class="calendar-grid" id="calendar"></div>
         <div class="time-grid" id="time_slots"></div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand();
+        tg.expand();
 
-        let form = { service: '', date: '', time: '', dNum: null };
+        let form = { pet: '', breed: '', name: '', service: '', date: '', time: '', dNum: null };
         const now = new Date();
+
+        function selPet(el, val) {
+            document.querySelectorAll('.pet-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            form.pet = val;
+            validate();
+        }
+
+        function toggleSub(el) {
+            const sub = el.nextElementSibling;
+            const isOpen = sub.style.display === 'flex';
+            document.querySelectorAll('.sub-services').forEach(s => s.style.display = 'none');
+            sub.style.display = isOpen ? 'none' : 'flex';
+        }
+
+        function selSub(el, val) {
+            document.querySelectorAll('.sub-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+            form.service = val;
+            validate();
+        }
+
+        // Календарь и время (логика из прошлых шагов с исправленным форматом даты)
         const months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-
-        document.getElementById('month-name').innerText = months[now.getMonth()] + " " + now.getFullYear();
-
-        // Маска телефона
-        document.getElementById('phone').addEventListener('input', (e) => {
-            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
-            e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + (x[3] ? ') ' + x[3] : '') + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
-        });
-
-        // Календарь
+        document.getElementById('month-name').innerText = months[now.getMonth()];
         const cal = document.getElementById('calendar');
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const startDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay() || 7;
-
-        for (let i = 1; i < startDay; i++) cal.appendChild(document.createElement('div'));
         for (let d = 1; d <= daysInMonth; d++) {
-            let el = document.createElement('div');
-            el.className = 'calendar-day' + (d < now.getDate() ? ' disabled' : '');
-            el.innerText = d;
-            el.onclick = () => {
+            let day = document.createElement('div');
+            day.className = 'calendar-day' + (d < now.getDate() ? ' disabled' : '');
+            day.innerText = d;
+            day.onclick = () => {
                 document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('active'));
-                el.classList.add('active');
-                form.date = `${d}.${now.getMonth() + 1}`;
+                day.classList.add('active');
+                let month = (now.getMonth() + 1).toString().padStart(2, '0');
+                form.date = `${d.toString().padStart(2, '0')}.${month}.${now.getFullYear().toString().slice(-2)}`;
                 form.dNum = d;
                 renderTimes();
-                val();
+                validate();
             };
-            cal.appendChild(el);
+            cal.appendChild(day);
         }
 
         function renderTimes() {
@@ -116,33 +145,34 @@
                     document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('active'));
                     s.classList.add('active');
                     form.time = s.innerText;
-                    val();
+                    validate();
                 };
                 container.appendChild(s);
             }
         }
 
-        function sel(el, type, v) {
-            el.parentElement.querySelectorAll('.item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
-            form[type] = v;
-            val();
-        }
+        // Маска телефона и валидация
+        document.getElementById('phone').addEventListener('input', (e) => {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
+            e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + (x[3] ? ') ' + x[3] : '') + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
+            validate();
+        });
 
-        function val() {
-            const isOk = form.service && form.date && form.time &&
-                         document.getElementById('breed').value &&
-                         document.getElementById('pet_name').value &&
-                         document.getElementById('phone').value.length >= 18;
+        function validate() {
+            const breed = document.getElementById('breed').value;
+            const name = document.getElementById('pet_name').value;
+            const phone = document.getElementById('phone').value;
+            const isOk = form.pet && breed && name && form.service && form.date && form.time && phone.length >= 18;
             isOk ? tg.MainButton.show() : tg.MainButton.hide();
         }
 
         tg.MainButton.text = "Записаться";
         tg.MainButton.onClick(() => {
             tg.sendData(JSON.stringify({
-                service: form.service,
+                pet_type: form.pet,
                 breed: document.getElementById('breed').value,
                 pet_name: document.getElementById('pet_name').value,
+                service: form.service,
                 phone: document.getElementById('phone').value,
                 date_time: form.date + " в " + form.time
             }));
