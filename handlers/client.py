@@ -1,38 +1,26 @@
 import json
 from aiogram import Router, F, types
-from aiogram.filters import Command
 import database as db
-import keyboards as kb
 from config import ADMIN_ID
+import keyboards as kb
 
 router = Router()
 
 
-# Команда /start - теперь она предлагает открыть Mini App
-@router.message(Command("start"))
-async def cmd_start(message: types.Message):
-    await message.answer(
-        f"Привет, {message.from_user.first_name}! 🐾\n"
-        "Добро пожаловать в PETGroom. Теперь записаться на стрижку можно быстро через наше мини-приложение.",
-        reply_markup=kb.get_main_kb(message.from_user.id, ADMIN_ID)
-    )
-
-
-# Обработка данных, пришедших из Mini App
 @router.message(F.web_app_data)
-async def process_web_app_data(message: types.Message):
+async def handle_mini_app_data(message: types.Message):
     try:
-        # Распаковываем JSON, который отправил index.html через tg.sendData
-        data = json.loads(message.web_app_data.data)
+        # 1. Получаем и парсим JSON
+        web_data = json.loads(message.web_app_data.data)
 
-        # Извлекаем поля (важно, чтобы ключи совпадали с теми, что в index.html)
-        breed = data.get('breed', 'Не указана')
-        pet_name = data.get('pet_name', 'Не указано')
-        service = data.get('service', 'Не выбрана')
-        date_time = data.get('date_time', 'Не указано')
-        phone = data.get('phone', 'Не указан')
+        # 2. Извлекаем данные
+        breed = web_data.get('breed', 'Не указана')
+        pet_name = web_data.get('pet_name', 'Не указано')
+        service = web_data.get('service', 'Не выбрана')
+        date_time = web_data.get('date_time', 'Не указано')
+        phone = web_data.get('phone', 'Не указан')
 
-        # Сохранение в вашу базу данных SQLite
+        # 3. СОХРАНЯЕМ В БД
         db.add_appointment(
             user_id=message.from_user.id,
             breed=breed,
@@ -42,42 +30,28 @@ async def process_web_app_data(message: types.Message):
             phone=phone
         )
 
-        # Ответ пользователю
+        # 4. Ответ пользователю
         await message.answer(
-            f"✅ <b>Запись успешно создана!</b>\n\n"
-            f"🐶 <b>Питомец:</b> {breed} ({pet_name})\n"
-            f"✂️ <b>Услуга:</b> {service}\n"
-            f"📅 <b>Время:</b> {date_time}\n\n"
-            f"Мастер свяжется с вами по номеру {phone}.",
-            parse_mode="HTML",
-            reply_markup=kb.get_main_kb(message.from_user.id, ADMIN_ID)
+            f"✅ <b>Запись подтверждена!</b>\n\n"
+            f"🐶 Питомец: {breed} ({pet_name})\n"
+            f"✂️ Услуга: {service}\n"
+            f"📅 Время: {date_time}\n"
+            f"📞 Контакт: {phone}",
+            parse_mode="HTML"
         )
 
-        # Уведомление администратора
+        # 5. Уведомление админу (обязательно!)
         if ADMIN_ID:
-            try:
-                await message.bot.send_message(
-                    ADMIN_ID,
-                    f"🔥 <b>НОВАЯ ЗАПИСЬ ИЗ MINI APP!</b>\n\n"
-                    f"👤 Клиент: {message.from_user.full_name}\n"
-                    f"🐶 Питомец: {breed} {pet_name}\n"
-                    f"✂️ Услуга: {service}\n"
-                    f"📅 Когда: {date_time}\n"
-                    f"📞 Телефон: {phone}",
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                print(f"Ошибка уведомления админа: {e}")
+            await message.bot.send_message(
+                ADMIN_ID,
+                f"🔔 <b>НОВАЯ ЗАПИСЬ!</b>\n\n"
+                f"🐶 Питомец: {breed} {pet_name}\n"
+                f"✂️ Услуга: {service}\n"
+                f"📅 Дата: {date_time}\n"
+                f"📱 Телефон: {phone}",
+                parse_mode="HTML"
+            )
 
     except Exception as e:
-        await message.answer("Произошла ошибка при обработке данных из приложения. Попробуйте еще раз.")
-        print(f"Ошибка Web App Data: {e}")
-
-
-# Резервный хендлер для текстовых сообщений
-@router.message(F.text)
-async def echo_handler(message: types.Message):
-    await message.answer(
-        "Используйте кнопку в меню для записи на груминг ⬇️",
-        reply_markup=kb.get_main_kb(message.from_user.id, ADMIN_ID)
-    )
+        print(f"Ошибка сохранения записи: {e}")
+        await message.answer("❌ Произошла ошибка при сохранении записи. Попробуйте еще раз.")
