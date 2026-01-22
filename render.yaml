@@ -3,6 +3,7 @@ services:
     name: grooming-booking-bot
     runtime: python         # Добавили обязательное свойство
     env: python             # Указываем, что используем Python
+    repo: https://github.com/vepr1991/pet
     buildCommand: pip install -r requirements.txt
     startCommand: python main.py
     envVars:
