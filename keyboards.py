@@ -3,7 +3,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 
 def get_main_kb(user_id, admin_id):
     # Укажите здесь URL, где вы разместите index.html (например, GitHub Pages)
-    web_app_url = "https://ваш-логин.github.io/ваш-репозиторий/"
+    web_app_url = "https://vepr1991.github.io/Pet/"
 
     if user_id == admin_id:
         buttons = [[KeyboardButton(text="📊 Посмотреть записи (Админ)")]]
