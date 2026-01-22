@@ -1,0 +1,12 @@
+services:
+  - type: worker
+    name: grooming-booking-bot
+    runtime: python         # Добавили обязательное свойство
+    env: python             # Указываем, что используем Python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_ID
+        sync: false
