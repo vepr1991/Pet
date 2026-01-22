@@ -25,5 +25,6 @@ async def main():
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Бот выключен")
+    except (KeyboardInterrupt, SystemExit):
+        # Это заставит бота закрыть сессию корректно и быстро
+        print("Бот выключается...")
