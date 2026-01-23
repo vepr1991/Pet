@@ -6,82 +6,198 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* Оставляем ваши стили из предыдущего сообщения (pet-grid, service-cat и т.д.) */
-        :root { --bg-color: #ffffff; --text-color: #000000; --button-color: #2481cc; --secondary-bg: #f0f0f0; }
-        body { font-family: sans-serif; background-color: #000; color: white; padding: 12px; }
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --button-color: #2481cc;
+            --secondary-bg: #f0f0f0;
+            --hint-color: #999999;
+        }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: #000; color: white; margin: 0; padding: 12px; }
         .section { background: #1c1c1e; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
         .label { font-size: 13px; font-weight: bold; color: var(--button-color); text-transform: uppercase; margin-bottom: 10px; display: block; }
-        input { width: 100%; background: #2c2c2e; border: none; border-radius: 10px; padding: 14px; font-size: 17px; color: white; margin-bottom: 8px; box-sizing: border-box; }
-        .service-item { background: #2c2c2e; padding: 12px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; border: 2px solid transparent; }
-        .service-item.active { border-color: var(--button-color); }
-        /* ... (другие ваши стили календаря) */
+
+        input {
+            width: 100%; background: #2c2c2e; border: none; border-radius: 10px;
+            padding: 14px; font-size: 17px; color: white; margin-bottom: 8px; box-sizing: border-box;
+        }
+
+        .pet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+        .pet-item { background: #2c2c2e; border-radius: 12px; padding: 10px; text-align: center; border: 2px solid transparent; cursor: pointer; }
+        .pet-item.active { border-color: var(--button-color); background: rgba(36, 129, 204, 0.1); }
+        .pet-item span { font-size: 24px; display: block; margin-bottom: 4px; }
+
+        /* Стили для динамических услуг */
+        .service-item { background: #2c2c2e; padding: 14px; border-radius: 10px; margin-bottom: 6px; cursor: pointer; border: 2px solid transparent; display: flex; justify-content: space-between; }
+        .service-item.selected { border-color: var(--button-color); background: rgba(36, 129, 204, 0.1); }
+
+        /* Календарь */
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .cal-btn { background: #2c2c2e; border: none; color: var(--button-color); padding: 8px 16px; border-radius: 8px; font-size: 20px; cursor: pointer; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .calendar-day { padding: 10px 0; font-size: 15px; border-radius: 8px; background: #2c2c2e; cursor: pointer; }
+        .calendar-day.active { background: var(--button-color); color: white; }
+        .calendar-day.disabled { opacity: 0.15; pointer-events: none; }
+        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
+        .time-slot { background: #2c2c2e; padding: 12px 0; border-radius: 8px; text-align: center; font-size: 14px; cursor: pointer; }
+        .time-slot.active { background: var(--button-color); color: white; }
     </style>
 </head>
 <body>
     <div class="section">
-        <span class="label">Вы записываетесь в студию:</span>
-        <h2 id="studio-name">Загрузка...</h2>
+        <span class="label">Студия:</span>
+        <h2 id="studio-name" style="margin: 0;">Загрузка...</h2>
+    </div>
+
+    <div class="section">
+        <span class="label">Кто ваш любимец?</span>
+        <div class="pet-grid">
+            <div class="pet-item" onclick="selPet(this, 'Собака')"><span>🐶</span>Собака</div>
+            <div class="pet-item" onclick="selPet(this, 'Кошка')"><span>🐱</span>Кошка</div>
+            <div class="pet-item" onclick="selPet(this, 'Другой')"><span>🐰</span>Другой</div>
+        </div>
+        <input type="text" id="breed" placeholder="Порода *" oninput="validate()">
+        <input type="text" id="pet_name" placeholder="Кличка питомца *" oninput="validate()">
     </div>
 
     <div class="section">
         <span class="label">Выберите услугу</span>
-        <div id="services-list">Загрузка прайса...</div>
+        <div id="services-list" style="color: #999;">Загрузка прайса...</div>
+    </div>
+
+    <div class="section">
+        <span class="label">Время записи</span>
+        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__" oninput="validate()">
+
+        <div class="cal-header">
+            <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
+            <div id="month-name"></div>
+            <button class="cal-btn" onclick="changeMonth(1)">›</button>
+        </div>
+        <div class="calendar-grid" id="calendar"></div>
+        <div class="time-grid" id="time_slots"></div>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
+        let tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
         const urlParams = new URLSearchParams(window.location.search);
-        const masterId = urlParams.get('master'); // Получаем ID мастера из URL
+        const masterId = urlParams.get('master');
 
         const _supabase = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
 
-        async function loadStudio() {
-            if (!masterId) {
-                document.getElementById('studio-name').innerText = "Общий выбор";
-                return;
+        let form = { pet: '', breed: '', name: '', service: '', dateStr: '', time: '', d: null, m: new Date().getMonth(), y: new Date().getFullYear() };
+        const months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
+        // 1. ЗАГРУЗКА ДАННЫХ МАСТЕРА
+        async function loadData() {
+            try {
+                if (masterId) {
+                    const { data: master } = await _supabase.from('masters').select('studio_name').eq('telegram_id', masterId).single();
+                    if (master) document.getElementById('studio-name').innerText = master.studio_name;
+
+                    const { data: services } = await _supabase.from('services').select('*').eq('master_id', masterId);
+                    renderServices(services);
+                } else {
+                    document.getElementById('studio-name').innerText = "Общая запись";
+                    document.getElementById('services-list').innerText = "Пожалуйста, выберите салон через ссылку мастера.";
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('services-list').innerText = "Ошибка загрузки услуг.";
             }
+        }
 
-            // Загружаем имя студии
-            const { data: master } = await _supabase.from('masters').select('studio_name').eq('telegram_id', masterId).single();
-            if (master) document.getElementById('studio-name').innerText = master.studio_name;
-
-            // Загружаем услуги именно этого мастера
-            const { data: services } = await _supabase.from('services').select('*').eq('master_id', masterId);
+        function renderServices(services) {
             const list = document.getElementById('services-list');
             list.innerHTML = '';
-
             if (services && services.length > 0) {
                 services.forEach(s => {
                     const div = document.createElement('div');
                     div.className = 'service-item';
-                    div.innerText = `${s.name} — ${s.price} ₸`;
+                    div.innerHTML = `<span>${s.name}</span> <b>${s.price} ₸</b>`;
                     div.onclick = () => {
-                        document.querySelectorAll('.service-item').forEach(i => i.classList.remove('active'));
-                        div.classList.add('active');
+                        document.querySelectorAll('.service-item').forEach(i => i.classList.remove('selected'));
+                        div.classList.add('selected');
                         form.service = s.name;
                         validate();
                     };
                     list.appendChild(div);
                 });
             } else {
-                list.innerText = "Услуги еще не добавлены";
+                list.innerText = "У мастера пока нет услуг.";
             }
         }
 
-        // В функции tg.MainButton.onClick обязательно добавьте master_id:
+        // 2. ВАША ЛОГИКА ВЫБОРА (Питомец, Календарь)
+        function selPet(el, val) {
+            document.querySelectorAll('.pet-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            form.pet = val;
+            validate();
+        }
+
+        function renderCal() {
+            document.getElementById('month-name').innerText = months[form.m] + " " + form.y;
+            const cal = document.getElementById('calendar');
+            cal.innerHTML = '';
+            // (Здесь ваш старый код отрисовки календаря)
+            const days = new Date(form.y, form.m + 1, 0).getDate();
+            for (let d = 1; d <= days; d++) {
+                let el = document.createElement('div');
+                el.className = 'calendar-day';
+                el.innerText = d;
+                el.onclick = () => {
+                    document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('active'));
+                    el.classList.add('active');
+                    form.dateStr = `${d}.${form.m+1}.${form.y}`;
+                    form.d = d;
+                    renderTimes();
+                    validate();
+                };
+                cal.appendChild(el);
+            }
+        }
+
+        function renderTimes() {
+            const container = document.getElementById('time_slots');
+            container.innerHTML = '';
+            for (let h = 10; h <= 18; h++) {
+                let s = document.createElement('div');
+                s.className = 'time-slot';
+                s.innerText = h + ':00';
+                s.onclick = () => {
+                    document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('active'));
+                    s.classList.add('active');
+                    form.time = s.innerText;
+                    validate();
+                };
+                container.appendChild(s);
+            }
+        }
+
+        function validate() {
+            const isOk = form.pet && document.getElementById('breed').value && form.service && form.dateStr && form.time;
+            isOk ? tg.MainButton.show() : tg.MainButton.hide();
+        }
+
+        tg.MainButton.setText("Записаться");
         tg.MainButton.onClick(() => {
             tg.sendData(JSON.stringify({
                 action: "client_appointment",
                 master_id: masterId,
+                pet_type: form.pet,
+                breed: document.getElementById('breed').value,
                 pet_name: document.getElementById('pet_name').value,
                 service: form.service,
                 phone: document.getElementById('phone').value,
                 date_time: form.dateStr + " в " + form.time
-                // ... остальные поля
             }));
         });
 
-        loadStudio();
+        loadData();
+        renderCal();
     </script>
 </body>
 </html>
