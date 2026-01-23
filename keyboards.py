@@ -1,32 +1,29 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+import database as db
 
 
 def get_main_kb(user_id, admin_id):
-    # Укажите здесь URL, где вы разместите index.html (например, GitHub Pages)
-    web_app_url = "https://vepr1991.github.io/Pet/"
+    # Основные URL (замените на свои актуальные ссылки на GitHub Pages)
+    # На client.html мы как раз и сделаем ваш выбор "Мастер/Клиент"
+    app_url = "https://vepr1991.github.io/Pet/index.html"
 
-    if user_id == admin_id:
-        buttons = [[KeyboardButton(text="📊 Посмотреть записи (Админ)")]]
+    # 1. Проверяем: является ли пользователь Главным Админом или Мастером в базе
+    is_user_master = (user_id == admin_id) or db.is_master(user_id)
+
+    if is_user_master:
+        # Клавиатура для МАСТЕРА
+        buttons = [
+            [KeyboardButton(text="⚙️ Панель управления", web_app=WebAppInfo(url=app_url))],
+            [KeyboardButton(text="📋 Посмотреть записи (текст)")]
+        ]
     else:
-        buttons = [[
-            KeyboardButton(
-                text="Записаться на груминг ✂️",
-                web_app=WebAppInfo(url=web_app_url)
-            )
-        ]]
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+        # Клавиатура для КЛИЕНТА
+        buttons = [
+            [KeyboardButton(text="Записаться на груминг ✂️", web_app=WebAppInfo(url=app_url))]
+        ]
 
-
-# Остальные клавиатуры (услуги и контакт) остаются без изменений
-def get_services_kb():
-    buttons = [
-        [KeyboardButton(text="Полный комплекс"), KeyboardButton(text="Гигиена")],
-        [KeyboardButton(text="Стрижка когтей"), KeyboardButton(text="Мытьё")],
-        [KeyboardButton(text="❌ Отмена")]
-    ]
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-
-
-def get_contact_kb():
-    buttons = [[KeyboardButton(text="📱 Отправить контакт", request_contact=True)]]
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True, one_time_keyboard=True)
+    return ReplyKeyboardMarkup(
+        keyboard=buttons,
+        resize_keyboard=True,
+        input_field_placeholder="Выберите действие..."
+    )
