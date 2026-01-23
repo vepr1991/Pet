@@ -6,47 +6,34 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #000000;
-            --button-color: #2481cc;
-            --secondary-bg: #f0f0f0;
-            --hint-color: #999999;
-        }
+        :root { --bg-color: #ffffff; --text-color: #000000; --button-color: #2481cc; --secondary-bg: #f0f0f0; --hint-color: #999999; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: #000; color: white; margin: 0; padding: 12px; }
         .section { background: #1c1c1e; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
         .label { font-size: 13px; font-weight: bold; color: var(--button-color); text-transform: uppercase; margin-bottom: 10px; display: block; }
-
-        input {
-            width: 100%; background: #2c2c2e; border: none; border-radius: 10px;
-            padding: 14px; font-size: 17px; color: white; margin-bottom: 8px; box-sizing: border-box;
-        }
-
+        input { width: 100%; background: #2c2c2e; border: none; border-radius: 10px; padding: 14px; font-size: 17px; color: white; margin-bottom: 8px; box-sizing: border-box; }
         .pet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
         .pet-item { background: #2c2c2e; border-radius: 12px; padding: 10px; text-align: center; border: 2px solid transparent; cursor: pointer; }
         .pet-item.active { border-color: var(--button-color); background: rgba(36, 129, 204, 0.1); }
         .pet-item span { font-size: 24px; display: block; margin-bottom: 4px; }
-
-        /* Стили для динамических услуг */
         .service-item { background: #2c2c2e; padding: 14px; border-radius: 10px; margin-bottom: 6px; cursor: pointer; border: 2px solid transparent; display: flex; justify-content: space-between; }
         .service-item.selected { border-color: var(--button-color); background: rgba(36, 129, 204, 0.1); }
-
-        /* Календарь */
         .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .cal-btn { background: #2c2c2e; border: none; color: var(--button-color); padding: 8px 16px; border-radius: 8px; font-size: 20px; cursor: pointer; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
         .calendar-day { padding: 10px 0; font-size: 15px; border-radius: 8px; background: #2c2c2e; cursor: pointer; }
         .calendar-day.active { background: var(--button-color); color: white; }
         .calendar-day.disabled { opacity: 0.15; pointer-events: none; }
+        .day-header { font-size: 11px; color: var(--hint-color); text-transform: uppercase; padding-bottom: 5px; }
         .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
         .time-slot { background: #2c2c2e; padding: 12px 0; border-radius: 8px; text-align: center; font-size: 14px; cursor: pointer; }
         .time-slot.active { background: var(--button-color); color: white; }
+        .time-slot.disabled { opacity: 0.15; pointer-events: none; }
     </style>
 </head>
 <body>
     <div class="section">
         <span class="label">Студия:</span>
-        <h2 id="studio-name" style="margin: 0;">Загрузка...</h2>
+        <h2 id="studio-name" style="margin: 0;">🐾 PETGroom</h2>
     </div>
 
     <div class="section">
@@ -62,19 +49,22 @@
 
     <div class="section">
         <span class="label">Выберите услугу</span>
-        <div id="services-list" style="color: #999;">Загрузка прайса...</div>
+        <div id="services-list">Загрузка прайса...</div>
     </div>
 
     <div class="section">
-        <span class="label">Время записи</span>
-        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__" oninput="validate()">
+        <span class="label">Контакт и время</span>
+        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__ *">
 
         <div class="cal-header">
             <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
-            <div id="month-name"></div>
+            <div id="month-name" style="font-weight: bold;"></div>
             <button class="cal-btn" onclick="changeMonth(1)">›</button>
         </div>
-        <div class="calendar-grid" id="calendar"></div>
+        <div class="calendar-grid" id="calendar">
+            <div class="day-header">Пн</div><div class="day-header">Вт</div><div class="day-header">Ср</div>
+            <div class="day-header">Чт</div><div class="day-header">Пт</div><div class="day-header">Сб</div><div class="day-header">Вс</div>
+        </div>
         <div class="time-grid" id="time_slots"></div>
     </div>
 
@@ -84,29 +74,24 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const masterId = urlParams.get('master');
-
         const _supabase = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
 
         let form = { pet: '', breed: '', name: '', service: '', dateStr: '', time: '', d: null, m: new Date().getMonth(), y: new Date().getFullYear() };
+        const now = new Date();
         const months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 
-        // 1. ЗАГРУЗКА ДАННЫХ МАСТЕРА
+        // --- ЗАГРУЗКА ДАННЫХ ---
         async function loadData() {
-            try {
-                if (masterId) {
-                    const { data: master } = await _supabase.from('masters').select('studio_name').eq('telegram_id', masterId).single();
-                    if (master) document.getElementById('studio-name').innerText = master.studio_name;
-
-                    const { data: services } = await _supabase.from('services').select('*').eq('master_id', masterId);
-                    renderServices(services);
-                } else {
-                    document.getElementById('studio-name').innerText = "Общая запись";
-                    document.getElementById('services-list').innerText = "Пожалуйста, выберите салон через ссылку мастера.";
-                }
-            } catch (e) {
-                console.error(e);
-                document.getElementById('services-list').innerText = "Ошибка загрузки услуг.";
+            if (!masterId) {
+                document.getElementById('studio-name').innerText = "Общий выбор";
+                document.getElementById('services-list').innerText = "Используйте ссылку мастера.";
+                return;
             }
+            const { data: master } = await _supabase.from('masters').select('studio_name').eq('telegram_id', masterId).single();
+            if (master) document.getElementById('studio-name').innerText = master.studio_name;
+
+            const { data: services } = await _supabase.from('services').select('*').eq('master_id', masterId);
+            renderServices(services);
         }
 
         function renderServices(services) {
@@ -125,33 +110,40 @@
                     };
                     list.appendChild(div);
                 });
-            } else {
-                list.innerText = "У мастера пока нет услуг.";
-            }
+            } else { list.innerText = "Услуг пока нет."; }
         }
 
-        // 2. ВАША ЛОГИКА ВЫБОРА (Питомец, Календарь)
-        function selPet(el, val) {
-            document.querySelectorAll('.pet-item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
-            form.pet = val;
-            validate();
+        // --- ЛОГИКА КАЛЕНДАРЯ ---
+        function changeMonth(dir) {
+            let next = new Date(form.y, form.m + dir, 1);
+            if (next < new Date(now.getFullYear(), now.getMonth(), 1)) return;
+            form.m = next.getMonth();
+            form.y = next.getFullYear();
+            renderCal();
         }
 
         function renderCal() {
             document.getElementById('month-name').innerText = months[form.m] + " " + form.y;
             const cal = document.getElementById('calendar');
-            cal.innerHTML = '';
-            // (Здесь ваш старый код отрисовки календаря)
-            const days = new Date(form.y, form.m + 1, 0).getDate();
-            for (let d = 1; d <= days; d++) {
+            cal.querySelectorAll('.calendar-day, .empty').forEach(e => e.remove());
+
+            const daysInMonth = new Date(form.y, form.m + 1, 0).getDate();
+            let firstDay = new Date(form.y, form.m, 1).getDay();
+            if (firstDay === 0) firstDay = 7; // Вс -> 7
+
+            for (let i = 1; i < firstDay; i++) {
+                let e = document.createElement('div'); e.className = 'empty'; cal.appendChild(e);
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
                 let el = document.createElement('div');
                 el.className = 'calendar-day';
+                if (form.y === now.getFullYear() && form.m === now.getMonth() && d < now.getDate()) el.classList.add('disabled');
                 el.innerText = d;
                 el.onclick = () => {
                     document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('active'));
                     el.classList.add('active');
-                    form.dateStr = `${d}.${form.m+1}.${form.y}`;
+                    form.dateStr = `${d.toString().padStart(2,'0')}.${(form.m+1).toString().padStart(2,'0')}.${form.y}`;
                     form.d = d;
                     renderTimes();
                     validate();
@@ -163,9 +155,10 @@
         function renderTimes() {
             const container = document.getElementById('time_slots');
             container.innerHTML = '';
-            for (let h = 10; h <= 18; h++) {
+            for (let h = 10; h <= 19; h++) {
                 let s = document.createElement('div');
                 s.className = 'time-slot';
+                if (form.y === now.getFullYear() && form.m === now.getMonth() && form.d === now.getDate() && h <= now.getHours()) s.classList.add('disabled');
                 s.innerText = h + ':00';
                 s.onclick = () => {
                     document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('active'));
@@ -177,8 +170,22 @@
             }
         }
 
+        // --- ВАЛИДАЦИЯ И МАСКА ---
+        document.getElementById('phone').addEventListener('input', (e) => {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
+            e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + (x[3] ? ') ' + x[3] : '') + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
+            validate();
+        });
+
+        function selPet(el, val) {
+            document.querySelectorAll('.pet-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            form.pet = val;
+            validate();
+        }
+
         function validate() {
-            const isOk = form.pet && document.getElementById('breed').value && form.service && form.dateStr && form.time;
+            const isOk = form.pet && document.getElementById('breed').value && document.getElementById('pet_name').value && form.service && form.dateStr && form.time && document.getElementById('phone').value.length >= 18;
             isOk ? tg.MainButton.show() : tg.MainButton.hide();
         }
 
