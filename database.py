@@ -20,8 +20,7 @@ def init_db():
 
 # --- БЛОК КЛИЕНТА ---
 
-def add_appointment(user_id, breed, pet_name, service, date_time, phone):
-    """Добавление записи клиента в общую таблицу"""
+def add_appointment(user_id, breed, pet_name, service, date_time, phone, master_id=None):
     try:
         data = {
             "user_id": user_id,
@@ -29,26 +28,17 @@ def add_appointment(user_id, breed, pet_name, service, date_time, phone):
             "pet_name": pet_name,
             "service": service,
             "date_time": date_time,
-            "phone": phone
+            "phone": phone,
+            "master_id": master_id  # Запись теперь привязана к студии
         }
         return supabase.table("appointments").insert(data).execute()
     except Exception as e:
-        print(f"❌ Ошибка при добавлении записи: {e}")
+        print(f"❌ Ошибка записи: {e}")
         return None
 
-# --- БЛОК МАСТЕРА ---
-
 def register_new_master(telegram_id, studio_name):
-    """
-    Регистрация нового мастера.
-    Выполняется только через бота, чтобы не светить ключи записи в JS.
-    """
     try:
-        data = {
-            "telegram_id": telegram_id,
-            "studio_name": studio_name,
-            "is_active": True
-        }
+        data = {"telegram_id": telegram_id, "studio_name": studio_name, "is_active": True}
         return supabase.table("masters").insert(data).execute()
     except Exception as e:
         print(f"❌ Ошибка регистрации мастера: {e}")

@@ -1,89 +1,52 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #000; color: white; text-align: center; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; }
-        .btn { width: 85%; padding: 20px; margin: 10px auto; border-radius: 15px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .client { background: #2481cc; color: white; }
-        .master { background: transparent; border: 2px solid #2481cc; color: #2481cc; }
-        .btn:active { transform: scale(0.95); opacity: 0.8; }
-        #loader { font-size: 16px; color: #999; }
-        #menu { display: none; }
+        body { background: #000; color: white; text-align: center; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; }
     </style>
 </head>
 <body>
-    <div id="loader">
-        <div style="margin-bottom: 10px;">🐾</div>
-        Проверка профиля...
-    </div>
-
-    <div id="menu">
-        <h2 style="margin-bottom: 5px;">PETGroom Алматы</h2>
-        <p style="color: #999; margin-bottom: 30px;">Выберите вашу роль</p>
-
-        <button class="btn client" onclick="location.href='client.html'">🐾 Я привел питомца</button>
-        <button class="btn master" onclick="regMaster()">✂️ Я мастер (Регистрация)</button>
-    </div>
+    <div id="loader">🐾 Загрузка...</div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // ОБЯЗАТЕЛЬНО: Проверьте, что эти данные верны
         const SUPABASE_URL = 'https://uplcrgnxkafcxejwuggx.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF'; // Здесь должен быть ANON PUBLIC KEY
+        const SUPABASE_KEY = 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function checkRole() {
-            try {
-                const user = tg.initDataUnsafe.user;
+        async function route() {
+            const user = tg.initDataUnsafe.user;
+            const startParam = tg.initDataUnsafe.start_param; // ID мастера из ссылки
+            const ADMIN_ID = 8441802462; // Ваш ID
 
-                // Если зашли не из Telegram (тест в браузере) — сразу показываем меню
-                if (!user || !user.id) {
-                    showMenu();
-                    return;
-                }
+            // 1. Если клиент зашел по ссылке мастера (?startapp=ID)
+            if (startParam) {
+                location.href = `client.html?master=${startParam}`;
+                return;
+            }
 
-                // Запрос к таблице мастеров
-                const { data, error } = await _supabase
-                    .from('masters')
-                    .select('telegram_id')
-                    .eq('telegram_id', user.id)
-                    .maybeSingle();
+            // 2. Если зашли ВЫ (Главный Админ)
+            if (user && user.id === ADMIN_ID) {
+                location.href = 'admin.html';
+                return;
+            }
 
-                if (error) throw error;
+            // 3. Проверяем, не мастер ли это
+            const { data } = await _supabase.from('masters').select('telegram_id').eq('telegram_id', user.id).maybeSingle();
 
-                if (data) {
-                    // Если пользователь уже зарегистрирован как мастер
-                    location.href = 'admin.html';
-                } else {
-                    // Если новый пользователь — показываем выбор
-                    showMenu();
-                }
-            } catch (err) {
-                console.error('Ошибка проверки роли:', err);
-                // В случае любой ошибки (даже если база недоступна) — показываем меню выбора
-                showMenu();
+            if (data) {
+                location.href = 'admin.html';
+            } else {
+                // Если новый человек без ссылки - предлагаем стать мастером
+                location.href = 'client.html'; // По дефолту на общую запись
             }
         }
-
-        function showMenu() {
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('menu').style.display = 'block';
-        }
-
-        function regMaster() {
-            // Закрываем приложение и отправляем команду боту
-            tg.sendData(JSON.stringify({action: "start_master_registration"}));
-            tg.close();
-        }
-
-        checkRole();
+        route();
     </script>
 </body>
 </html>
