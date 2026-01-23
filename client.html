@@ -86,7 +86,8 @@
                     document.getElementById('st-name').innerText = "Мастер не выбран";
                     document.getElementById('srv-list').innerHTML = "<p style='color:#666'>Пожалуйста, используйте прямую ссылку мастера для записи.</p>";
                 } else {
-                    const { data: m } = await _sb.from('masters').select('studio_name').eq('telegram_id', mId).single();
+                   // Используем Number(mId), чтобы точно передать число в базу
+                    const { data: m } = await _sb.from('masters').select('studio_name').eq('telegram_id', Number(mId)).single();
                     if (m) document.getElementById('st-name').innerText = m.studio_name;
 
                     const { data: s } = await _sb.from('services').select('*').eq('master_id', mId);
