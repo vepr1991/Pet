@@ -1,51 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { background: #000; color: white; text-align: center; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; }
-    </style>
 </head>
-<body>
+<body style="background: #000; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
     <div id="loader">🐾 Загрузка...</div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
-        tg.expand();
 
-        const SUPABASE_URL = 'https://uplcrgnxkafcxejwuggx.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF';
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        function route() {
+            // Считываем параметр из ссылки (Deep Link)
+            const startParam = tg.initDataUnsafe.start_param;
 
-        async function route() {
-            const user = tg.initDataUnsafe.user;
-            const startParam = tg.initDataUnsafe.start_param; // ID мастера из ссылки
-            const ADMIN_ID = 8441802462; // Ваш ID
-
-            // 1. Если клиент зашел по ссылке мастера (?startapp=ID)
             if (startParam) {
-                location.href = `client.html?master=${startParam}`;
-                return;
-            }
-
-            // 2. Если зашли ВЫ (Главный Админ)
-            if (user && user.id === ADMIN_ID) {
-                location.href = 'admin.html';
-                return;
-            }
-
-            // 3. Проверяем, не мастер ли это
-            const { data } = await _supabase.from('masters').select('telegram_id').eq('telegram_id', user.id).maybeSingle();
-
-            if (data) {
-                location.href = 'admin.html';
+                // Если зашли по ссылке мастера — сразу на его страницу
+                window.location.replace(`client.html?master=${startParam}`);
             } else {
-                // Если новый человек без ссылки - предлагаем стать мастером
-                location.href = 'client.html'; // По дефолту на общую запись
+                // Если зашли без параметров — на общую форму или онбординг
+                window.location.replace('client.html');
             }
         }
+
         route();
     </script>
 </body>

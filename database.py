@@ -29,8 +29,9 @@ def add_appointment(user_id, breed, pet_name, service, date_time, phone, master_
             "service": service,
             "date_time": date_time,
             "phone": phone,
-            "master_id": master_id  # Запись теперь привязана к студии
+            "master_id": master_id  # Привязываем запись к конкретному мастеру
         }
+        # Бот с service_role ключом запишет это в обход любых RLS
         return supabase.table("appointments").insert(data).execute()
     except Exception as e:
         print(f"❌ Ошибка записи: {e}")
