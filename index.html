@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
-<body style="background: #000; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+<body style="background: #000; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif;">
     <div id="loader">🐾 Загрузка...</div>
 
     <script>
@@ -12,18 +12,16 @@
         tg.ready();
 
         function route() {
-            // Считываем параметр из ссылки (Deep Link)
             const startParam = tg.initDataUnsafe.start_param;
 
             if (startParam) {
-                // Если зашли по ссылке мастера — сразу на его страницу
+                // Если есть ID мастера — идем к нему
                 window.location.replace(`client.html?master=${startParam}`);
             } else {
-                // Если зашли без параметров — на общую форму или онбординг
+                // Если нет — просто открываем чистую форму записи
                 window.location.replace('client.html');
             }
         }
-
         route();
     </script>
 </body>

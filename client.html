@@ -6,60 +6,94 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #1c1c1e; --accent: #2481cc; --gray: #2c2c2e; --text: #ffffff; }
+        :root {
+            --bg: #1c1c1e;
+            --accent: #2481cc;
+            --gray: #2c2c2e;
+            --text: #ffffff;
+            --hint: #666;
+        }
         body { font-family: -apple-system, sans-serif; background: #000; color: var(--text); margin: 0; padding: 15px; }
+
+        /* Секции */
         .section { background: var(--bg); border-radius: 15px; padding: 15px; margin-bottom: 15px; }
-        .label { font-size: 12px; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; display: block; }
-        input { width: 100%; background: var(--gray); border: none; border-radius: 10px; padding: 15px; font-size: 16px; color: #fff; margin-bottom: 10px; box-sizing: border-box; }
+        .label { font-size: 12px; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 12px; display: block; }
 
+        /* Поля ввода */
+        input {
+            width: 100%; background: var(--gray); border: none; border-radius: 10px;
+            padding: 15px; font-size: 16px; color: #fff; margin-bottom: 10px; box-sizing: border-box;
+            outline: none;
+        }
+        input:focus { box-shadow: 0 0 0 2px var(--accent); }
+
+        /* Сетка питомцев */
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .item { background: var(--gray); padding: 12px; border-radius: 12px; text-align: center; border: 2px solid transparent; }
+        .item { background: var(--gray); padding: 12px; border-radius: 12px; text-align: center; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
         .item.active { border-color: var(--accent); background: rgba(36, 129, 204, 0.1); }
+        .item span { font-size: 24px; display: block; margin-bottom: 4px; }
 
-        .service-card { background: var(--gray); padding: 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; border: 2px solid transparent; }
-        .service-card.active { border-color: var(--accent); }
+        /* Карточки услуг */
+        .service-card {
+            background: var(--gray); padding: 15px; border-radius: 12px; margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 2px solid transparent; cursor: pointer;
+        }
+        .service-card.active { border-color: var(--accent); background: rgba(36, 129, 204, 0.1); }
+        .service-card b { color: var(--accent); }
 
-        .cal-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+        /* Календарь */
+        .cal-header { display: flex; justify-content: space-between; align-items: center; padding: 5px 0 15px 0; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
-        .day { padding: 10px 0; border-radius: 8px; background: var(--gray); font-size: 14px; }
-        .day.act { background: var(--accent); }
-        .day.dis { opacity: 0.2; }
+        .day-header { font-size: 10px; color: var(--hint); text-transform: uppercase; padding-bottom: 8px; }
+        .day { padding: 10px 0; border-radius: 8px; background: var(--gray); font-size: 14px; cursor: pointer; }
+        .day.act { background: var(--accent); color: white; font-weight: bold; }
+        .day.dis { opacity: 0.15; pointer-events: none; }
+        .empty { padding: 10px 0; }
+
+        /* Время */
         .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
-        .time { background: var(--gray); padding: 10px 0; border-radius: 8px; text-align: center; }
-        .time.act { background: var(--accent); }
+        .time { background: var(--gray); padding: 12px 0; border-radius: 8px; text-align: center; cursor: pointer; font-size: 14px; }
+        .time.act { background: var(--accent); color: white; font-weight: bold; }
+        .time.dis { opacity: 0.15; pointer-events: none; }
+
+        #loader-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; justify-content:center; align-items:center; z-index:100; }
     </style>
 </head>
 <body>
 
+    <div id="loader-overlay">🐾 Загрузка студии...</div>
+
     <div class="section">
-        <span class="label">Студия</span>
-        <h2 id="st-name">Загрузка...</h2>
+        <span class="label">Вы записываетесь в:</span>
+        <h2 id="st-name" style="margin:0; font-size: 22px;">PETGroom</h2>
     </div>
 
     <div class="section">
-        <span class="label">Питомец</span>
+        <span class="label">Кто ваш любимец?</span>
         <div class="grid">
-            <div class="item" id="p1" onclick="setPet('Собака', 'p1')">🐶<br>Собака</div>
-            <div class="item" id="p2" onclick="setPet('Кошка', 'p2')">🐱<br>Кошка</div>
-            <div class="item" id="p3" onclick="setPet('Другой', 'p3')">🐰<br>Другой</div>
+            <div class="item" id="p1" onclick="setPet('Собака', 'p1')"><span>🐶</span>Собака</div>
+            <div class="item" id="p2" onclick="setPet('Кошка', 'p2')"><span>🐱</span>Кошка</div>
+            <div class="item" id="p3" onclick="setPet('Другой', 'p3')"><span>🐰</span>Другой</div>
         </div>
-        <input type="text" id="breed" placeholder="Порода *" style="margin-top:15px">
-        <input type="text" id="pname" placeholder="Кличка *">
+        <input type="text" id="breed" placeholder="Порода (напр. Шпиц) *" style="margin-top:15px" oninput="check()">
+        <input type="text" id="pname" placeholder="Кличка питомца *" oninput="check()">
     </div>
 
     <div class="section">
-        <span class="label">Услуги</span>
-        <div id="srv-list">Ожидание выбора мастера...</div>
+        <span class="label">Выберите услугу</span>
+        <div id="srv-list" style="color: var(--hint); font-size: 14px;">Загрузка услуг...</div>
     </div>
 
     <div class="section">
-        <span class="label">Контакты и время</span>
-        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__">
+        <span class="label">Контактные данные</span>
+        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__ *">
 
+        <span class="label" style="margin-top:20px">Дата и время</span>
         <div class="cal-header">
-            <button onclick="moveMonth(-1)" style="background:none; border:none; color:#2481cc; font-size:20px">‹</button>
-            <b id="m-name"></b>
-            <button onclick="moveMonth(1)" style="background:none; border:none; color:#2481cc; font-size:20px">›</button>
+            <button onclick="moveMonth(-1)" style="background:none; border:none; color:var(--accent); font-size:28px; cursor:pointer">‹</button>
+            <b id="m-name" style="font-size: 17px;"></b>
+            <button onclick="moveMonth(1)" style="background:none; border:none; color:var(--accent); font-size:28px; cursor:pointer">›</button>
         </div>
         <div class="cal-grid" id="cal-body"></div>
         <div class="time-grid" id="tm-body"></div>
@@ -71,30 +105,54 @@
 
         const params = new URLSearchParams(location.search);
         const mId = params.get('master');
+
+        // Supabase инициализация
         const _sb = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
 
         let sel = { pet:'', srv:'', date:'', time:'', m: new Date().getMonth(), y: new Date().getFullYear() };
+        const now = new Date();
 
         async function init() {
-            if (!mId) { document.getElementById('st-name').innerText = "Ошибка: ID мастера не найден"; return; }
+            try {
+                if (!mId) {
+                    document.getElementById('st-name').innerText = "Мастер не выбран";
+                    document.getElementById('srv-list').innerText = "Пожалуйста, используйте прямую ссылку мастера.";
+                    document.getElementById('loader-overlay').style.display = 'none';
+                    return;
+                }
 
-            const { data: m } = await _sb.from('masters').select('studio_name').eq('telegram_id', mId).single();
-            if (m) document.getElementById('st-name').innerText = m.studio_name;
+                // Загрузка информации о мастере
+                const { data: m } = await _sb.from('masters').select('studio_name').eq('telegram_id', mId).single();
+                if (m) document.getElementById('st-name').innerText = m.studio_name;
 
-            const { data: s } = await _sb.from('services').select('*').eq('master_id', mId);
-            const list = document.getElementById('srv-list');
-            list.innerHTML = '';
-            s?.forEach(i => {
-                const d = document.createElement('div');
-                d.className = 'service-card';
-                d.innerHTML = `<span>${i.name}</span><b>${i.price} ₸</b>`;
-                d.onclick = () => {
-                    document.querySelectorAll('.service-card').forEach(x => x.classList.remove('active'));
-                    d.classList.add('active'); sel.srv = i.name; check();
-                };
-                list.appendChild(d);
-            });
-            renderCal();
+                // Загрузка услуг мастера
+                const { data: s } = await _sb.from('services').select('*').eq('master_id', mId);
+                const list = document.getElementById('srv-list');
+                list.innerHTML = '';
+
+                if (s && s.length > 0) {
+                    s.forEach(i => {
+                        const d = document.createElement('div');
+                        d.className = 'service-card';
+                        d.innerHTML = `<span>${i.name}</span><b>${i.price} ₸</b>`;
+                        d.onclick = () => {
+                            document.querySelectorAll('.service-card').forEach(x => x.classList.remove('active'));
+                            d.classList.add('active');
+                            sel.srv = i.name;
+                            check();
+                        };
+                        list.appendChild(d);
+                    });
+                } else {
+                    list.innerText = "У мастера пока нет настроенных услуг.";
+                }
+
+                document.getElementById('loader-overlay').style.display = 'none';
+                renderCal();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loader-overlay').innerText = "Ошибка загрузки данных";
+            }
         }
 
         function setPet(v, id) {
@@ -104,9 +162,10 @@
         }
 
         function moveMonth(v) {
-            sel.m += v;
-            if (sel.m > 11) { sel.m = 0; sel.y++; }
-            if (sel.m < 0) { sel.m = 11; sel.y--; }
+            let next = new Date(sel.y, sel.m + v, 1);
+            if (next < new Date(now.getFullYear(), now.getMonth(), 1)) return;
+            sel.m = next.getMonth();
+            sel.y = next.getFullYear();
             renderCal();
         }
 
@@ -114,34 +173,67 @@
             const months = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
             document.getElementById('m-name').innerText = months[sel.m] + " " + sel.y;
             const body = document.getElementById('cal-body');
-            body.innerHTML = '';
 
-            const days = new Date(sel.y, sel.m + 1, 0).getDate();
-            for(let i=1; i<=days; i++) {
+            // Заголовок календаря
+            body.innerHTML = '<div class="day-header">Пн</div><div class="day-header">Вт</div><div class="day-header">Ср</div><div class="day-header">Чт</div><div class="day-header">Пт</div><div class="day-header">Сб</div><div class="day-header">Вс</div>';
+
+            let firstDay = new Date(sel.y, sel.m, 1).getDay();
+            if (firstDay === 0) firstDay = 7; // Вс = 7
+
+            const daysInMonth = new Date(sel.y, sel.m + 1, 0).getDate();
+
+            // Пустые ячейки для выравнивания
+            for (let i = 1; i < firstDay; i++) {
+                const e = document.createElement('div'); e.className = 'empty'; body.appendChild(e);
+            }
+
+            // Отрисовка дней
+            for (let i = 1; i <= daysInMonth; i++) {
                 const d = document.createElement('div');
                 d.className = 'day';
+
+                // Блокировка прошлых дат
+                const dateObj = new Date(sel.y, sel.m, i);
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                if (dateObj < today) d.classList.add('dis');
+
                 d.innerText = i;
                 d.onclick = () => {
                     document.querySelectorAll('.day').forEach(x => x.classList.remove('act'));
-                    d.classList.add('act'); sel.date = `${i}.${sel.m+1}.${sel.y}`;
-                    renderTime(); check();
+                    d.classList.add('act');
+                    sel.date = `${i.toString().padStart(2,'0')}.${(sel.m+1).toString().padStart(2,'0')}.${sel.y}`;
+                    renderTime(i);
+                    check();
                 };
                 body.appendChild(d);
             }
         }
 
-        function renderTime() {
-            const b = document.getElementById('tm-body'); b.innerHTML = '';
-            [10,11,12,13,14,15,16,17,18].forEach(h => {
-                const t = document.createElement('div'); t.className = 'time'; t.innerText = h+':00';
+        function renderTime(day) {
+            const b = document.getElementById('tm-body');
+            b.innerHTML = '';
+
+            [10,11,12,13,14,15,16,17,18,19].forEach(h => {
+                const t = document.createElement('div');
+                t.className = 'time';
+
+                // Блокировка прошедшего времени сегодня
+                if (sel.y === now.getFullYear() && sel.m === now.getMonth() && day === now.getDate() && h <= now.getHours()) {
+                    t.classList.add('dis');
+                }
+
+                t.innerText = h + ':00';
                 t.onclick = () => {
                     document.querySelectorAll('.time').forEach(x => x.classList.remove('act'));
-                    t.classList.add('act'); sel.time = h+':00'; check();
+                    t.classList.add('act');
+                    sel.time = h + ':00';
+                    check();
                 };
                 b.appendChild(t);
             });
         }
 
+        // Маска телефона
         document.getElementById('phone').oninput = (e) => {
             let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
             e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + (x[3] ? ') ' + x[3] : '') + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
@@ -149,10 +241,21 @@
         };
 
         function check() {
-            const ok = sel.pet && sel.srv && sel.date && sel.time && document.getElementById('phone').value.length > 17;
-            if (ok) { tg.MainButton.show(); tg.MainButton.setText("Записаться"); } else tg.MainButton.hide();
+            const phoneVal = document.getElementById('phone').value;
+            const breedVal = document.getElementById('breed').value;
+            const nameVal = document.getElementById('pname').value;
+
+            const ok = sel.pet && sel.srv && sel.date && sel.time && phoneVal.length >= 18 && breedVal && nameVal;
+
+            if (ok) {
+                tg.MainButton.show();
+                tg.MainButton.setText("Записаться");
+            } else {
+                tg.MainButton.hide();
+            }
         }
 
+        // Отправка данных боту
         tg.MainButton.onClick(() => {
             tg.sendData(JSON.stringify({
                 action: "client_appointment",
