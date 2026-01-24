@@ -1,34 +1,40 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 import database as db
 
-# Указываем базовый адрес вашего сайта здесь
-BASE_URL = "https://vepr1991.github.io/Pet"
+BASE_URL = "https://vepr1991.github.io/Pet"  # Твой адрес на GitHub
 
-def get_main_kb(user_id, admin_id):
-    is_master = db.is_master(user_id)
-    # Проверка на админа (сравнение чисел)
-    is_admin = (int(user_id) == int(admin_id)) if admin_id else False
 
-    buttons = []
+def get_main_kb(user_id, admin_id, for_master=None):
+    u_id = int(user_id)
+    a_id = int(admin_id) if admin_id else None
 
-    # 1. ШАГ: ГЛОБАЛЬНЫЙ АДМИН (ВЫ)
-    if is_admin:
-        buttons.append([KeyboardButton(text="📊 Посмотреть записи (Все)")])
-        # Используем BASE_URL здесь
-        buttons.append([KeyboardButton(text="⚙️ Админ-панель", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={user_id}"))])
-        buttons.append([KeyboardButton(text="🔗 Моя ссылка")])
+    # 1. Сценарий: Глобальный админ
+    if a_id and u_id == a_id:
+        return ReplyKeyboardMarkup(keyboard=[
+            [KeyboardButton(text="📊 Посмотреть записи (Все)")],
+            [KeyboardButton(text="⚙️ Админ-панель", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={u_id}"))],
+            [KeyboardButton(text="🔗 Моя ссылка")]
+        ], resize_keyboard=True)
 
-    # 2. ШАГ: ЗАРЕГИСТРИРОВАННЫЙ МАСТЕР
-    elif is_master:
-        buttons.append([KeyboardButton(text="⚙️ Панель мастера", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={user_id}"))])
-        buttons.append([
-            KeyboardButton(text="🔗 Моя ссылка"),
-            KeyboardButton(text="✂️ Редактировать услуги", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={user_id}#services"))
-        ])
+    # 2. Сценарий: Зарегистрированный мастер
+    if db.is_master(u_id):
+        return ReplyKeyboardMarkup(keyboard=[
+            [KeyboardButton(text="⚙️ Панель мастера", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={u_id}"))],
+            [KeyboardButton(text="🔗 Моя ссылка"),
+             KeyboardButton(text="✂️ Услуги", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={u_id}#services"))]
+        ], resize_keyboard=True)
 
-    # 3. ШАГ: НОВЫЙ ПОЛЬЗОВАТЕЛЬ (КЛИЕНТ)
-    else:
-        # Для обычного человека оставляем только кнопку регистрации мастера
-        buttons.append([KeyboardButton(text="🤝 Стать партнером (Регистрация мастера)")])
+    # 3. Сценарий: КЛИЕНТ (зашел по ссылке мастера)
+    if for_master:
+        studio = for_master.get('studio_name', 'студию')
+        m_id = for_master.get('telegram_id')
+        return ReplyKeyboardMarkup(keyboard=[
+            [KeyboardButton(text=f"🐾 Записаться в {studio}",
+                            web_app=WebAppInfo(url=f"{BASE_URL}/client.html?master={m_id}"))],
+            [KeyboardButton(text="🤝 Стать партнером (Для студий)")]
+        ], resize_keyboard=True)
 
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+    # 4. Сценарий: Случайный прохожий
+    return ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text="🤝 Стать партнером (Регистрация мастера)")]
+    ], resize_keyboard=True)

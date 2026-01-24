@@ -2,31 +2,41 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body style="background: #000; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif;">
-    <div id="loader">🐾 Загрузка PETGroom...</div>
+    <div id="loader">🐾 Вход в PETGroom...</div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
 
         function route() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const masterFromUrl = urlParams.get('master');
             const startParam = tg.initDataUnsafe.start_param;
             const userId = tg.initDataUnsafe.user?.id;
 
-            // СЦЕНАРИЙ 1: Клиент перешел по ссылке мастера (есть startapp)
-            if (startParam) {
-                window.location.replace(`client.html?master=${startParam}`);
+            // 1. Если в ссылке уже есть ID или он пришел через startapp (это КЛИЕНТ)
+            const mId = masterFromUrl || startParam;
+
+            if (mId) {
+                console.log("Маршрут: Клиент -> Мастер", mId);
+                window.location.replace(`client.html?master=${mId}`);
             }
-            // СЦЕНАРИЙ 2: Мастер или Админ зашел без ссылки (из меню бота)
-            else {
+            // 2. Если параметров нет (это МАСТЕР, зашедший через кнопку бота)
+            else if (userId) {
+                console.log("Маршрут: Мастер/Админ", userId);
                 window.location.replace(`admin.html?master=${userId}`);
+            }
+            else {
+                document.getElementById('loader').innerText = "Ошибка: ID не найден. Перезапустите бота.";
             }
         }
 
-        // Небольшая задержка, чтобы Телеграм успел передать данные
-        setTimeout(route, 200);
+        // Даем Telegram 250мс на инициализацию данных
+        setTimeout(route, 250);
     </script>
 </body>
 </html>

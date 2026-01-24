@@ -1,6 +1,5 @@
-import json
-from aiogram import Router, F, types
-from aiogram.filters import Command
+from aiogram import Router, types
+from aiogram.filters import Command, CommandObject
 import database as db
 import keyboards as kb
 from config import ADMIN_ID
@@ -9,37 +8,25 @@ router = Router()
 
 
 @router.message(Command("start"))
-async def cmd_start(message: types.Message):
-    await message.answer(
-        "Добро пожаловать в PETGroom! 🐾",
-        reply_markup=kb.get_main_kb(message.from_user.id, ADMIN_ID)
-    )
+async def cmd_start(message: types.Message, command: CommandObject):
+    u_id = message.from_user.id
+    args = command.args  # Это ID мастера из ссылки t.me/bot?start=ID
 
+    master_info = None
+    if args and args.isdigit():
+        master_info = db.get_master_info(args)
 
-@router.message(F.web_app_data.data.contains("client_appointment"))
-async def process_booking(message: types.Message):
-    try:
-        data = json.loads(message.web_app_data.data)
-        m_id = data.get("master_id")
-
-        db.add_appointment(
-            user_id=message.from_user.id,
-            breed=f"{data.get('pet_type')}: {data.get('breed')}",
-            pet_name=data.get('pet_name'),
-            service=data.get('service'),
-            date_time=data.get('date_time'),
-            phone=data.get('phone'),
-            master_id=m_id  # Привязка к мастеру
+    if master_info:
+        await message.answer(
+            f"Добро пожаловать в <b>{master_info['studio_name']}</b>! 🐾\n\n"
+            "Нажмите на кнопку ниже, чтобы выбрать услугу.",
+            parse_mode="HTML",
+            reply_markup=kb.get_main_kb(u_id, ADMIN_ID, for_master=master_info)
         )
-
-        await message.answer("✅ <b>Вы успешно записаны!</b>", parse_mode="HTML")
-
-        if m_id:
-            await message.bot.send_message(m_id, f"🔔 Новая запись!\n📞 {data.get('phone')}")
-    except Exception as e:
-        print(f"Ошибка WebApp: {e}")
-
-
-@router.message(F.text & ~F.text.startswith(("📊", "⚙️", "🔗", "📋")))
-async def handle_text(message: types.Message):
-    await message.answer("Пожалуйста, используйте кнопки меню ⬇️")
+    else:
+        await message.answer(
+            "🐾 <b>PETGroom</b> — система управления записями.\n\n"
+            "Если вы мастер, нажмите кнопку регистрации.",
+            parse_mode="HTML",
+            reply_markup=kb.get_main_kb(u_id, ADMIN_ID)
+        )
