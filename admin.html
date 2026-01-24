@@ -7,7 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #1c1c1e; --accent: #2481cc; --gray: #2c2c2e; --text: #ffffff; --red: #ff3b30; }
+        :root { --bg: #1c1c1e; --accent: #2481cc; --gray: #2c2c2e; --text: #ffffff; }
         body { font-family: -apple-system, sans-serif; background: #000; color: var(--text); margin: 0; padding: 15px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .tab-menu { display: flex; gap: 8px; margin-bottom: 20px; background: var(--bg); padding: 5px; border-radius: 12px; }
@@ -19,18 +19,20 @@
         .label { font-size: 11px; color: var(--accent); text-transform: uppercase; font-weight: bold; margin-bottom: 8px; display: block; }
         input { width: 100%; background: var(--gray); border: none; border-radius: 10px; padding: 12px; color: #fff; margin-bottom: 10px; box-sizing: border-box; }
         .btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: 10px; padding: 12px; font-weight: bold; }
-        .appt-card { border-left: 4px solid var(--accent); }
-        .client-info { font-size: 15px; margin-bottom: 5px; }
-        .pet-info { font-size: 13px; color: #aaa; }
+        .appt-card { border-left: 4px solid var(--accent); position: relative; }
+        .appt-date { color: var(--accent); font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+        .client-name { font-size: 16px; font-weight: bold; margin-bottom: 4px; display: block; }
+        .pet-details { font-size: 13px; color: #aaa; line-height: 1.4; }
+        .call-btn { display: inline-block; margin-top: 10px; color: var(--accent); text-decoration: none; font-weight: bold; font-size: 14px; }
         #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; justify-content:center; align-items:center; z-index:100; }
     </style>
 </head>
 <body>
-    <div id="loader">🐾 Синхронизация...</div>
+    <div id="loader">🐾 Синхронизация данных...</div>
 
     <div class="header">
-        <h2 id="studio-name" style="margin:0">Панель управления</h2>
-        <button onclick="location.reload()" style="background:none; border:none; font-size:18px;">🔄</button>
+        <h2 id="studio-name" style="margin:0; font-size: 20px;">Кабинет</h2>
+        <button onclick="location.reload()" style="background:none; border:none; font-size:20px;">🔄</button>
     </div>
 
     <div class="tab-menu">
@@ -39,23 +41,25 @@
         <div class="tab" onclick="showTab('tab-settings', this)">Настройки</div>
     </div>
 
-    <div id="tab-appts" class="section active"><div id="appts-list"></div></div>
+    <div id="tab-appts" class="section active">
+        <div id="appts-list"></div>
+    </div>
 
     <div id="tab-services" class="section">
         <div class="card">
-            <span class="label">Добавить услугу</span>
-            <input type="text" id="srv-name" placeholder="Название">
+            <span class="label">Новая услуга</span>
+            <input type="text" id="srv-name" placeholder="Название услуги">
             <input type="number" id="srv-price" placeholder="Цена (₸)">
-            <button class="btn" onclick="addService()">Добавить</button>
+            <button class="btn" onclick="addService()">Добавить в прайс</button>
         </div>
         <div id="services-list"></div>
     </div>
 
     <div id="tab-settings" class="section">
         <div class="card">
-            <span class="label">Название студии</span>
+            <span class="label">Ваша студия</span>
             <input type="text" id="edit-name">
-            <button class="btn" onclick="updateStudio()">Сохранить</button>
+            <button class="btn" onclick="updateStudio()">Сохранить название</button>
         </div>
     </div>
 
@@ -63,10 +67,15 @@
         const tg = window.Telegram.WebApp;
         const _sb = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
         const params = new URLSearchParams(window.location.search);
+        // Берем ID мастера из URL или из системы TG
         let mId = params.get('master') || tg.initDataUnsafe.user?.id;
 
         async function init() {
-            if (!mId) return;
+            tg.ready(); tg.expand();
+            if (!mId) {
+                document.body.innerHTML = "<div style='padding:50px; text-align:center;'>ID мастера не найден</div>";
+                return;
+            }
             await loadMaster();
             await loadServices();
             await loadAppts();
@@ -82,31 +91,45 @@
         }
 
         async function loadAppts() {
-            // Загружаем записи с учетом имени клиента
-            const { data } = await _sb.from('appointments').select('*').eq('master_id', mId).order('id', { ascending: false });
+            // Загружаем все записи для данного мастера
+            const { data, error } = await _sb.from('appointments')
+                .select('*')
+                .eq('master_id', mId)
+                .order('id', { ascending: false });
+
             const list = document.getElementById('appts-list');
-            list.innerHTML = data?.length ? '' : '<p style="text-align:center; color:#666;">Записей пока нет</p>';
-            data?.forEach(a => {
+            list.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:#666; margin-top:40px;">Записей пока нет 📭</div>';
+                return;
+            }
+
+            data.forEach(a => {
                 const div = document.createElement('div');
                 div.className = 'card appt-card';
                 div.innerHTML = `
-                    <div style="color:var(--accent); font-weight:bold; font-size:14px; margin-bottom:8px;">${a.date_time}</div>
-                    <div class="client-info">👤 <b>${a.client_name || 'Клиент'}</b></div>
-                    <div class="pet-info">🐶 ${a.breed} — ${a.pet_name}</div>
-                    <div style="font-size:12px; margin:5px 0;">✂️ ${a.service}</div>
-                    <div style="margin-top:10px;"><a href="tel:${a.phone}" style="color:var(--accent); text-decoration:none; font-weight:bold;">📞 ${a.phone}</a></div>
+                    <div class="appt-date">📅 ${a.date_time}</div>
+                    <span class="client-name">👤 ${a.client_name || 'Клиент'}</span>
+                    <div class="pet-details">
+                        🐾 ${a.breed}<br>
+                        📛 Кличка: ${a.pet_name}<br>
+                        ✂️ Услуга: ${a.service}
+                    </div>
+                    <a href="tel:${a.phone}" class="call-btn">📞 Позвонить клиенту</a>
                 `;
                 list.appendChild(div);
             });
         }
 
+        // Остальные функции (addService, updateStudio, showTab)
         async function loadServices() {
             const { data } = await _sb.from('services').select('*').eq('master_id', mId).order('id', { ascending: false });
             const list = document.getElementById('services-list');
-            list.innerHTML = '<span class="label">Ваш прайс</span>';
+            list.innerHTML = data?.length ? '<span class="label">Ваш прайс</span>' : '';
             data?.forEach(s => {
                 const div = document.createElement('div');
-                div.style = "display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #222;";
+                div.style = "display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #222;";
                 div.innerHTML = `<span>${s.name}</span><b>${s.price} ₸</b>`;
                 list.appendChild(div);
             });
@@ -116,14 +139,14 @@
             const name = document.getElementById('srv-name').value;
             const price = document.getElementById('srv-price').value;
             if (!name || !price) return;
-            await _sb.from('services').insert([{ master_id: Number(mId), name, price: Number(price) }]);
+            await _sb.from('services').insert([{ master_id: Number(mId), name: name, price: Number(price) }]);
             location.reload();
         }
 
         async function updateStudio() {
             const val = document.getElementById('edit-name').value;
             await _sb.from('masters').update({ studio_name: val }).eq('telegram_id', mId);
-            tg.showAlert("Обновлено!");
+            tg.showAlert("Название обновлено!");
         }
 
         function showTab(id, el) {
