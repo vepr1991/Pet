@@ -16,7 +16,7 @@ def init_db():
         print(f"❌ Ошибка Supabase: {e}")
 
 # --- КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Функция записи ---
-def add_appointment(user_id, breed, pet_name, service, date_time, phone, master_id):
+def add_appointment(user_id, breed, pet_name, service, date_time, phone, master_id, client_name):
     """Добавляет новую запись в таблицу appointments"""
     try:
         data = {
@@ -26,11 +26,12 @@ def add_appointment(user_id, breed, pet_name, service, date_time, phone, master_
             "service": service,
             "date_time": date_time,
             "phone": phone,
-            "master_id": int(master_id)
+            "master_id": int(master_id),
+            "client_name": client_name
         }
         return supabase.table("appointments").insert(data).execute()
     except Exception as e:
-        print(f"❌ Ошибка add_appointment: {e}")
+        print(f"❌ Ошибка: {e}")
         return None
 
 def get_master_info(master_id):

@@ -4,234 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-:root {
-  --bg: #1c1c1e;
-  --surface: #2c2c2e;
-  --accent: #2481cc;
-  --text: #ffffff;
-  --text-secondary: #9a9a9e;
-  --red: #ff3b30;
-}
-
-/* Base */
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  background: #000;
-  color: var(--text);
-  margin: 0;
-  padding: 14px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Loader */
-#loader {
-  position: fixed;
-  inset: 0;
-  background: #000;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-}
-
-.spinner {
-  width: 28px;
-  height: 28px;
-  border: 2.5px solid #333;
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
-  margin-bottom: 10px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Header & Tabs */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 18px;
-}
-
-.tab-menu {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 18px;
-  background: var(--bg);
-  padding: 4px;
-  border-radius: 10px;
-}
-
-.tab {
-  flex: 1;
-  padding: 8px 0;
-  text-align: center;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--text-secondary);
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.tab.active {
-  background: var(--surface);
-  color: var(--text);
-  font-weight: 600;
-}
-
-/* Sections */
-.section { display: none; }
-.section.active { display: block; }
-
-/* Cards */
-.card {
-  background: var(--bg);
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 12px;
-}
-
-.label {
-  font-size: 11px;
-  color: var(--accent);
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  display: block;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-}
-
-/* Inputs */
-input {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 15px;
-  color: var(--text);
-  margin-bottom: 10px;
-  outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-input::placeholder {
-  color: var(--text-secondary);
-}
-
-input:focus {
-  border-color: var(--accent);
-  background: #333;
-}
-
-/* Buttons */
-.btn {
-  width: 100%;
-  height: 44px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
-  transition: opacity 0.15s ease, transform 0.05s ease;
-}
-
-.btn:active {
-  opacity: 0.85;
-  transform: scale(0.98);
-}
-
-/* Services List */
-.service-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--surface);
-  padding: 12px;
-  border-radius: 10px;
-  margin-bottom: 8px;
-}
-
-.service-info b {
-  display: block;
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-
-.service-info small {
-  color: var(--accent);
-  font-size: 13px;
-}
-
-.del-btn {
-  background: rgba(255, 59, 48, 0.12);
-  color: var(--red);
-  border: none;
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-/* Appointments */
-.appt-card {
-  border-left: 3px solid var(--accent);
-}
-
-.appt-time {
-  font-weight: 600;
-  color: var(--accent);
-  font-size: 15px;
-  margin-bottom: 4px;
-}
-
-.appt-pet {
-  font-size: 16px;
-  margin-bottom: 2px;
-}
-
-.appt-service {
-  color: var(--text-secondary);
-  font-size: 13px;
-  margin-bottom: 10px;
-}
-
-.call-link {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 14px;
-}
-</style>
-
+        :root { --bg: #1c1c1e; --accent: #2481cc; --gray: #2c2c2e; --text: #ffffff; --red: #ff3b30; }
+        body { font-family: -apple-system, sans-serif; background: #000; color: var(--text); margin: 0; padding: 15px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .tab-menu { display: flex; gap: 8px; margin-bottom: 20px; background: var(--bg); padding: 5px; border-radius: 12px; }
+        .tab { flex: 1; padding: 10px; text-align: center; border-radius: 10px; cursor: pointer; font-size: 13px; color: #888; }
+        .tab.active { background: var(--gray); color: var(--text); font-weight: bold; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .card { background: var(--bg); border-radius: 15px; padding: 15px; margin-bottom: 12px; border: 1px solid #333; }
+        .label { font-size: 11px; color: var(--accent); text-transform: uppercase; font-weight: bold; margin-bottom: 8px; display: block; }
+        input { width: 100%; background: var(--gray); border: none; border-radius: 10px; padding: 12px; color: #fff; margin-bottom: 10px; box-sizing: border-box; }
+        .btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: 10px; padding: 12px; font-weight: bold; }
+        .appt-card { border-left: 4px solid var(--accent); }
+        .client-info { font-size: 15px; margin-bottom: 5px; }
+        .pet-info { font-size: 13px; color: #aaa; }
+        #loader { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; justify-content:center; align-items:center; z-index:100; }
+    </style>
 </head>
 <body>
-
-    <div id="loader">
-        <div class="spinner"></div>
-        <span>Синхронизация...</span>
-    </div>
+    <div id="loader">🐾 Синхронизация...</div>
 
     <div class="header">
-        <div>
-            <h2 id="studio-name" style="margin:0; font-size: 20px;">Загрузка...</h2>
-            <div id="master-id-badge" style="font-size:10px; color:#555; margin-top:2px"></div>
-        </div>
-        <button onclick="location.reload()" style="background:none; border:none; font-size:20px; cursor:pointer">🔄</button>
+        <h2 id="studio-name" style="margin:0">Панель управления</h2>
+        <button onclick="location.reload()" style="background:none; border:none; font-size:18px;">🔄</button>
     </div>
 
     <div class="tab-menu">
@@ -240,177 +39,91 @@ input:focus {
         <div class="tab" onclick="showTab('tab-settings', this)">Настройки</div>
     </div>
 
-    <div id="tab-appts" class="section active">
-        <div id="appts-list"></div>
-    </div>
+    <div id="tab-appts" class="section active"><div id="appts-list"></div></div>
 
     <div id="tab-services" class="section">
         <div class="card">
-            <span class="label">Новая услуга</span>
-            <input type="text" id="srv-name" placeholder="Название (напр. Стрижка)">
+            <span class="label">Добавить услугу</span>
+            <input type="text" id="srv-name" placeholder="Название">
             <input type="number" id="srv-price" placeholder="Цена (₸)">
-            <button class="btn" onclick="addService()">Добавить в прайс</button>
+            <button class="btn" onclick="addService()">Добавить</button>
         </div>
         <div id="services-list"></div>
     </div>
 
     <div id="tab-settings" class="section">
         <div class="card">
-            <span class="label">Название вашей студии</span>
-            <input type="text" id="edit-studio-name">
-            <button class="btn" onclick="updateStudio()">Сохранить название</button>
-        </div>
-        <div style="text-align: center; color: #444; font-size: 11px; margin-top: 20px;">
-            PETGroom Admin Panel v1.0.8<br>Powered by Supabase & Telegram
+            <span class="label">Название студии</span>
+            <input type="text" id="edit-name">
+            <button class="btn" onclick="updateStudio()">Сохранить</button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand();
-
-        // Supabase
         const _sb = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
-
-        // ГАРАНТИРОВАННОЕ ПОЛУЧЕНИЕ ID
         const params = new URLSearchParams(window.location.search);
         let mId = params.get('master') || tg.initDataUnsafe.user?.id;
 
         async function init() {
-            if (!mId) {
-                document.getElementById('loader').innerHTML = `
-                    <div style="text-align:center; padding:30px;">
-                        <p style="font-size:40px">🔒</p>
-                        <p>Ошибка авторизации</p>
-                        <p style="font-size:12px; color:#666; margin-bottom:20px">ID не найден. Пожалуйста, откройте панель через кнопку в боте.</p>
-                        <button class="btn" onclick="tg.close()">Закрыть</button>
-                    </div>`;
-                return;
-            }
-
-            document.getElementById('master-id-badge').innerText = "MASTER ID: " + mId;
-
-            try {
-                // Если база была очищена, данные могут не вернуться — обрабатываем это
-                await loadMaster();
-                await loadServices();
-                await loadAppts();
-                document.getElementById('loader').style.display = 'none';
-            } catch (e) {
-                console.error(e);
-                document.getElementById('loader').style.display = 'none';
-            }
+            if (!mId) return;
+            await loadMaster();
+            await loadServices();
+            await loadAppts();
+            document.getElementById('loader').style.display = 'none';
         }
 
         async function loadMaster() {
             const { data } = await _sb.from('masters').select('*').eq('telegram_id', mId).single();
             if (data) {
                 document.getElementById('studio-name').innerText = data.studio_name;
-                document.getElementById('edit-studio-name').value = data.studio_name;
-            } else {
-                document.getElementById('studio-name').innerText = "Студия не найдена";
+                document.getElementById('edit-name').value = data.studio_name;
             }
         }
-
-        async function loadServices() {
-            const { data } = await _sb.from('services').select('*').eq('master_id', mId).order('id', { ascending: false });
-            const list = document.getElementById('services-list');
-            list.innerHTML = data?.length ? '<span class="label">Ваш активный прайс</span>' : '<p style="color:#666; text-align:center">У вас пока нет услуг. Добавьте первую!</p>';
-            data?.forEach(s => {
-                const div = document.createElement('div');
-                div.className = 'service-item';
-                div.innerHTML = `<div class="service-info"><b>${s.name}</b><small>${s.price} ₸</small></div>
-                                 <button class="del-btn" onclick="delService(${s.id})">🗑️</button>`;
-                list.appendChild(div);
-            });
-        }
-
-async function addService() {
-    const name = document.getElementById('srv-name').value;
-    const price = document.getElementById('srv-price').value;
-
-    // Проверка на пустоту
-    if (!name || !price) {
-        tg.showAlert("Заполните название и цену!");
-        return;
-    }
-
-    // Важно: передаем mId как Number, чтобы база его приняла
-    const { error } = await _sb.from('services').insert([
-        {
-            master_id: Number(mId),
-            name: name,
-            price: parseInt(price)
-        }
-    ]);
-
-    if (!error) {
-        document.getElementById('srv-name').value = '';
-        document.getElementById('srv-price').value = '';
-        tg.showScanQrPopup && tg.showAlert("Услуга добавлена ✅"); // Маленькая обратная связь
-        loadServices();
-    } else {
-        console.error("Ошибка Supabase:", error);
-        tg.showAlert("Ошибка: " + error.message);
-    }
-}
-
-function delService(id) {
-    // Используем нативный метод Telegram WebApp
-    tg.showConfirm("Удалить услугу из прайса?", (isConfirmed) => {
-        if (isConfirmed) {
-            // Если мастер нажал "ОК", выполняем удаление
-            executeDelete(id);
-        }
-    });
-}
-
-// Вынесем само удаление в отдельную функцию для чистоты кода
-async function executeDelete(id) {
-    try {
-        const { error } = await _sb.from('services').delete().eq('id', id);
-        if (!error) {
-            loadServices(); // Обновляем список на экране
-            tg.showScanQrPopup && tg.showAlert("Услуга удалена");
-        } else {
-            tg.showAlert("Ошибка при удалении: " + error.message);
-        }
-    } catch (e) {
-        console.error(e);
-    }
-}
 
         async function loadAppts() {
+            // Загружаем записи с учетом имени клиента
             const { data } = await _sb.from('appointments').select('*').eq('master_id', mId).order('id', { ascending: false });
             const list = document.getElementById('appts-list');
-            list.innerHTML = '';
-
-            if (!data || data.length === 0) {
-                list.innerHTML = '<div class="card" style="text-align:center; color:#666">Новых записей пока нет.<br><br><small>Когда клиенты начнут записываться, они появятся здесь.</small></div>';
-                return;
-            }
-
-            data.forEach(a => {
+            list.innerHTML = data?.length ? '' : '<p style="text-align:center; color:#666;">Записей пока нет</p>';
+            data?.forEach(a => {
                 const div = document.createElement('div');
                 div.className = 'card appt-card';
                 div.innerHTML = `
-                    <div class="appt-time">${a.date_time}</div>
-                    <div class="appt-pet"><b>${a.breed}</b> ${a.pet_name}</div>
-                    <div class="appt-service">${a.service}</div>
-                    <a href="tel:${a.phone}" class="call-link">📞 Позвонить клиенту</a>
+                    <div style="color:var(--accent); font-weight:bold; font-size:14px; margin-bottom:8px;">${a.date_time}</div>
+                    <div class="client-info">👤 <b>${a.client_name || 'Клиент'}</b></div>
+                    <div class="pet-info">🐶 ${a.breed} — ${a.pet_name}</div>
+                    <div style="font-size:12px; margin:5px 0;">✂️ ${a.service}</div>
+                    <div style="margin-top:10px;"><a href="tel:${a.phone}" style="color:var(--accent); text-decoration:none; font-weight:bold;">📞 ${a.phone}</a></div>
                 `;
                 list.appendChild(div);
             });
         }
 
+        async function loadServices() {
+            const { data } = await _sb.from('services').select('*').eq('master_id', mId).order('id', { ascending: false });
+            const list = document.getElementById('services-list');
+            list.innerHTML = '<span class="label">Ваш прайс</span>';
+            data?.forEach(s => {
+                const div = document.createElement('div');
+                div.style = "display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #222;";
+                div.innerHTML = `<span>${s.name}</span><b>${s.price} ₸</b>`;
+                list.appendChild(div);
+            });
+        }
+
+        async function addService() {
+            const name = document.getElementById('srv-name').value;
+            const price = document.getElementById('srv-price').value;
+            if (!name || !price) return;
+            await _sb.from('services').insert([{ master_id: Number(mId), name, price: Number(price) }]);
+            location.reload();
+        }
+
         async function updateStudio() {
-            const val = document.getElementById('edit-studio-name').value;
-            if (!val) return;
-            const { error } = await _sb.from('masters').update({ studio_name: val }).eq('telegram_id', mId);
-            if (!error) {
-                tg.showAlert("Название сохранено!");
-                document.getElementById('studio-name').innerText = val;
-            }
+            const val = document.getElementById('edit-name').value;
+            await _sb.from('masters').update({ studio_name: val }).eq('telegram_id', mId);
+            tg.showAlert("Обновлено!");
         }
 
         function showTab(id, el) {
