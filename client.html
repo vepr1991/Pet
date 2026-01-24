@@ -300,14 +300,21 @@ function changeMonth(dir){
     renderCalendar();
 }
 
-function sendBooking(){
-    booking.breed=document.getElementById('p-breed').value;
-    booking.pet_name=document.getElementById('p-name').value;
-    booking.phone=document.getElementById('p-phone').value;
+function sendBooking() {
+    booking.breed = document.getElementById('p-breed').value;
+    booking.pet_name = document.getElementById('p-name').value;
+    booking.phone = document.getElementById('p-phone').value;
 
-    if(!booking.pet_type||!booking.service||!booking.breed||!booking.pet_name||!booking.date||!booking.time||booking.phone.length<17){
+    // ДОБАВЛЕНО: Берем username
+    booking.username = tg.initDataUnsafe.user?.username || "";
+
+    if(!booking.pet_type || !booking.service || !booking.breed || !booking.pet_name || !booking.date || !booking.time || booking.phone.length < 17) {
         return tg.showAlert("Пожалуйста, заполните все поля со звездочкой!");
     }
+
+    tg.sendData(JSON.stringify(booking));
+    tg.close();
+}
 
     tg.sendData(JSON.stringify(booking));
     tg.close();

@@ -40,6 +40,7 @@ async def handle_booking_data(message: types.Message):
         data = json.loads(message.web_app_data.data)
         client_tg_name = message.from_user.full_name  # Имя из Телеграм
 
+        client_username = data.get('username')
         m_id = data.get('master_id')
         dt = f"{data.get('date')} {data.get('time')}"
 
@@ -55,7 +56,8 @@ async def handle_booking_data(message: types.Message):
             date_time=dt,
             phone=data.get('phone'),
             master_id=int(m_id),  # Гарантируем, что это число
-            client_name=client_tg_name
+            client_name=client_tg_name,
+            username = client_username
         )
 
         # 2. Уведомление мастеру
