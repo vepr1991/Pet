@@ -10,31 +10,45 @@
         body { font-family: -apple-system, sans-serif; background: #000; color: var(--text); margin: 0; padding: 20px; }
         .step { display: none; }
         .step.active { display: block; }
-        .studio-title { color: var(--accent); font-size: 22px; font-weight: bold; margin-bottom: 20px; text-align: center; }
-        .card { background: var(--bg); border-radius: 15px; padding: 15px; margin-bottom: 10px; border: 1px solid #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: 12px; padding: 15px; font-weight: bold; margin-top: 20px; }
+        .studio-title { color: var(--accent); font-size: 20px; font-weight: bold; margin-bottom: 20px; text-align: center; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: var(--bg); border-radius: 15px; padding: 15px; margin-bottom: 10px; border: 1px solid #333; cursor: pointer; text-align: center; }
+        .card.selected { border-color: var(--accent); background: rgba(36, 129, 204, 0.1); }
+        .btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: 12px; padding: 15px; font-weight: bold; margin-top: 10px; }
+        input { width: 100%; background: var(--gray); border: none; border-radius: 10px; padding: 12px; color: #fff; margin-bottom: 10px; box-sizing: border-box; }
 
-        /* Календарь */
+        /* Календарь и время */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 15px; }
-        .day { padding: 10px 5px; text-align: center; background: var(--gray); border-radius: 8px; font-size: 12px; }
-        .day.selected { background: var(--accent); color: white; }
-        .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-        .time-slot { padding: 10px; text-align: center; background: var(--gray); border-radius: 8px; }
+        .day { padding: 8px; text-align: center; background: var(--gray); border-radius: 8px; font-size: 11px; }
+        .day.selected { background: var(--accent); }
+        .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+        .time-slot { padding: 10px; text-align: center; background: var(--gray); border-radius: 8px; font-size: 13px; }
         .time-slot.selected { background: var(--accent); }
     </style>
 </head>
 <body>
-    <div id="master-name" class="studio-title">Загрузка...</div>
+    <div id="master-name" class="studio-title">Загрузка студии...</div>
 
-    <div id="step-services" class="step active">
-        <p>1. Выберите услугу:</p>
-        <div id="services-list">Загрузка прайса...</div>
+    <div id="step-pet" class="step active">
+        <p>🐾 Кто ваш питомец?</p>
+        <div class="grid-2">
+            <div class="card" onclick="selectPet('Собака')">🐶<br>Собака</div>
+            <div class="card" onclick="selectPet('Кошка')">🐱<br>Кошка</div>
+            <div class="card" onclick="selectPet('Другой')" style="grid-column: span 2;">🐰 Другой</div>
+        </div>
+    </div>
+
+    <div id="step-service" class="step">
+        <p>✂️ Выберите услугу:</p>
+        <input type="text" id="pet-name" placeholder="Кличка питомца">
+        <div id="services-list"></div>
     </div>
 
     <div id="step-datetime" class="step">
-        <p>2. Выберите дату и время:</p>
+        <p>📅 Выберите дату и время:</p>
         <div id="calendar" class="calendar-grid"></div>
         <div id="time-slots" class="time-grid"></div>
+        <input type="tel" id="client-phone" placeholder="Ваш телефон (+7...)" style="margin-top:20px">
         <button class="btn" id="confirm-btn" onclick="finishBooking()" style="display:none;">Подтвердить запись</button>
     </div>
 
@@ -43,9 +57,7 @@
         const _sb = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
         const mId = new URLSearchParams(window.location.search).get('master');
 
-        let selectedService = "";
-        let selectedDate = "";
-        let selectedTime = "";
+        let bookingData = { pet_type: "", pet_name: "", service: "", date: "", time: "", master_id: mId };
 
         async function init() {
             if (!mId) return;
@@ -54,28 +66,40 @@
 
             const { data: srv } = await _sb.from('services').select('*').eq('master_id', Number(mId));
             const list = document.getElementById('services-list');
-            list.innerHTML = "";
             srv?.forEach(s => {
                 const div = document.createElement('div');
                 div.className = 'card';
+                div.style.textAlign = 'left';
                 div.innerHTML = `<div><b>${s.name}</b></div><div style="color:var(--accent)">${s.price} ₸</div>`;
                 div.onclick = () => selectService(s.name);
                 list.appendChild(div);
             });
         }
 
+        function selectPet(type) {
+            bookingData.pet_type = type;
+            nextStep('step-pet', 'step-service');
+        }
+
         function selectService(name) {
-            selectedService = name;
-            document.getElementById('step-services').classList.remove('active');
-            document.getElementById('step-datetime').classList.add('active');
+            const pName = document.getElementById('pet-name').value;
+            if (!pName) { tg.showAlert("Введите кличку питомца!"); return; }
+            bookingData.pet_name = pName;
+            bookingData.service = name;
+            nextStep('step-service', 'step-datetime');
             renderCalendar();
+        }
+
+        function nextStep(current, next) {
+            document.getElementById(current).classList.remove('active');
+            document.getElementById(next).classList.add('active');
         }
 
         function renderCalendar() {
             const grid = document.getElementById('calendar');
             grid.innerHTML = "";
             const today = new Date();
-            for(let i=0; i<7; i++) {
+            for(let i=0; i<14; i++) {
                 let d = new Date(); d.setDate(today.getDate() + i);
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'day';
@@ -83,7 +107,7 @@
                 dayDiv.onclick = () => {
                     document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
                     dayDiv.classList.add('selected');
-                    selectedDate = d.toLocaleDateString('ru-RU');
+                    bookingData.date = d.toLocaleDateString('ru-RU');
                     renderTime();
                 };
                 grid.appendChild(dayDiv);
@@ -93,7 +117,7 @@
         function renderTime() {
             const grid = document.getElementById('time-slots');
             grid.innerHTML = "";
-            const times = ["10:00", "12:00", "14:00", "16:00", "18:00"];
+            const times = ["10:00", "11:30", "13:00", "14:30", "16:00", "17:30"];
             times.forEach(t => {
                 const div = document.createElement('div');
                 div.className = 'time-slot';
@@ -101,7 +125,7 @@
                 div.onclick = () => {
                     document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
-                    selectedTime = t;
+                    bookingData.time = t;
                     document.getElementById('confirm-btn').style.display = 'block';
                 };
                 grid.appendChild(div);
@@ -109,13 +133,11 @@
         }
 
         function finishBooking() {
-            tg.sendData(JSON.stringify({
-                action: "book",
-                service: selectedService,
-                date: selectedDate,
-                time: selectedTime,
-                master_id: mId
-            }));
+            const phone = document.getElementById('client-phone').value;
+            if (!phone) { tg.showAlert("Введите номер телефона!"); return; }
+            bookingData.phone = phone;
+
+            tg.sendData(JSON.stringify(bookingData));
             tg.close();
         }
 
