@@ -8,11 +8,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg:#f2f2f7; /* Стандартный фон iOS */
+            --bg:#f2f2f7;
             --card:#ffffff;
             --text:#000000;
             --muted:#8e8e93;
-            --accent:#007aff; /* Синий iOS */
+            --accent:#007aff;
             --danger:#ff3b30;
             --green: #34c759;
             --r: 12px;
@@ -20,14 +20,14 @@
 
         body {
             margin:0; padding:16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background:var(--bg); color:var(--text); -webkit-tap-highlight-color: transparent; padding-bottom: 50px;
+            background:var(--bg); color:var(--text);
+            -webkit-tap-highlight-color: transparent; /* Убирает синий квадрат при клике на Android */
+            padding-bottom: 50px;
         }
 
-        /* Header */
         .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
         .header h2 { margin:0; font-size:22px; font-weight:700; }
 
-        /* Tabs */
         .tab-menu { display:flex; background:#e5e5ea; padding:2px; border-radius:10px; margin-bottom:20px; }
         .tab { flex:1; text-align:center; padding:8px; font-size:13px; font-weight:500; color:#000; border-radius:8px; cursor:pointer; }
         .tab.active { background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -35,43 +35,42 @@
         .section { display:none; }
         .section.active { display:block; }
 
-        /* Card */
         .card { background:var(--card); border-radius:var(--r); padding:16px; margin-bottom:12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 
-        /* Inputs & Buttons */
         input { width:100%; padding:14px; border-radius:10px; border:none; background:#f2f2f7; font-size:17px; margin-bottom:10px; box-sizing: border-box; }
-        .btn { width:100%; padding:14px; border:none; border-radius:12px; background:var(--accent); color:#fff; font-size:17px; font-weight:600; cursor:pointer; }
-        .btn:active { opacity: 0.8; }
 
-        /* Services */
+        .btn { width:100%; padding:14px; border:none; border-radius:12px; background:var(--accent); color:#fff; font-size:17px; font-weight:600; cursor:pointer; }
+
         .service-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #e5e5ea; }
         .btn-del { width:30px; height:30px; border-radius:50%; background:#ff3b30; color:#fff; border:none; font-size:14px; font-weight:bold; display:flex; align-items:center; justify-content:center; }
 
-        /* Appt Card */
+        /* СТИЛИ КАРТОЧКИ ЗАПИСИ */
         .appt-card { border-left: 4px solid var(--accent); position: relative; }
         .appt-time { color:var(--accent); font-weight:700; font-size: 15px; margin-bottom: 5px; }
         .client-name { font-size: 18px; font-weight: 600; margin-bottom: 2px; }
-        .info-row { font-size: 14px; color: #666; margin-bottom: 2px; }
+        .info-row { font-size: 14px; color: #666; margin-bottom: 4px; }
 
-        /* Ссылка-номер (для копирования и звонка) */
-        .phone-link {
-            display: inline-block;
-            margin-top: 8px;
+        /* ВАЖНО: Делаем номер телефона выделяемым и копируемым */
+        .selectable-phone {
             font-size: 16px;
             font-weight: 500;
-            color: var(--accent);
-            text-decoration: none;
+            color: var(--text);
+            margin: 8px 0;
             padding: 4px 0;
+            /* Эти свойства разрешают выделение текста на iPhone */
+            -webkit-user-select: text;
+            user-select: text;
+            cursor: text;
         }
 
         /* КНОПКИ ДЕЙСТВИЙ */
-        .btns-row { display: flex; gap: 10px; margin-top: 15px; }
+        .btns-row { display: flex; gap: 10px; margin-top: 12px; }
 
-        /* Это тег <a> стилизованный под кнопку - гарантия работы звонка */
+        /* Общий стиль ссылок-кнопок */
         .action-link {
             flex: 1;
             text-align: center;
-            padding: 10px;
+            padding: 12px;
             border-radius: 10px;
             text-decoration: none;
             font-weight: 600;
@@ -80,13 +79,18 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
+            transition: 0.1s opacity, 0.1s transform;
         }
 
-        .btn-call { background: #eef5ff; color: #007aff; }
-        .btn-call:active { background: #d0e3ff; }
+        /* Эффект нажатия (мигание) */
+        .action-link:active {
+            opacity: 0.6;
+            transform: scale(0.97);
+        }
 
+        /* Цвета кнопок */
+        .btn-call { background: #eef5ff; color: #007aff; }
         .btn-write { background: #effff3; color: #34c759; cursor: pointer; }
-        .btn-write:active { background: #d6ffdd; }
 
         /* Modal */
         #custom-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:999; }
@@ -101,7 +105,7 @@
 
     <div class="header">
         <div>
-            <div style="font-size:12px; color:#888; margin-bottom:2px;">Кабинет мастера</div>
+            <div style="font-size:12px; color:#888;">Кабинет</div>
             <h2 id="studio-name">Загрузка...</h2>
         </div>
         <button onclick="refreshData()" style="background:none; border:none; font-size:22px;">🔄</button>
@@ -129,7 +133,6 @@
     <div id="custom-modal">
         <div class="modal-box">
             <div style="font-size:18px; font-weight:600; margin-bottom:10px;">Удалить услугу?</div>
-            <div style="color:#666; font-size:14px;">Это действие нельзя отменить.</div>
             <div class="modal-btns">
                 <button class="m-btn m-yes" onclick="confirmDelete()">Удалить</button>
                 <button class="m-btn m-no" onclick="closeModal()">Отмена</button>
@@ -197,7 +200,7 @@
                     <div class="info-row">🐶 ${breed} ${petName}</div>
                     <div class="info-row">✂️ ${a.service}</div>
 
-                    ${phone ? `<a href="tel:${phone}" class="phone-link">📞 ${phone}</a>` : ''}
+                    <div class="selectable-phone">📞 ${phone}</div>
 
                     <div class="btns-row">
                         <a href="tel:${phone}" class="action-link btn-call">Позвонить</a>
@@ -209,13 +212,15 @@
             });
         }
 
-        // --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТКРЫТИЯ ЧАТА ---
         function openChat(userId) {
+            // Вибрация при нажатии (Haptic Feedback)
+            tg.HapticFeedback.impactOccurred('light');
+
             if (!userId || userId === 'undefined' || userId === 'null') {
-                tg.showAlert("Ошибка: ID пользователя не найден в базе");
+                tg.showAlert("Ошибка: ID пользователя не найден");
                 return;
             }
-            // Самый надежный способ открыть чат внутри Telegram
+            // Правильный метод для Web App
             tg.openTelegramLink(`tg://user?id=${userId}`);
         }
 
