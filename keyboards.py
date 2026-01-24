@@ -1,34 +1,34 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 import database as db
 
+# Указываем базовый адрес вашего сайта здесь
+BASE_URL = "https://vepr1991.github.io/Pet"
 
 def get_main_kb(user_id, admin_id):
-    base_url = "https://vepr1991.github.io/Pet"
     is_master = db.is_master(user_id)
-    is_admin = (user_id == admin_id)
+    # Проверка на админа (сравнение чисел)
+    is_admin = (int(user_id) == int(admin_id)) if admin_id else False
 
     buttons = []
 
+    # 1. ШАГ: ГЛОБАЛЬНЫЙ АДМИН (ВЫ)
     if is_admin:
-        # Добавляем ID в ссылку для админа
-        buttons.append(
-            [KeyboardButton(text="⚙️ Админ-панель", web_app=WebAppInfo(url=f"{base_url}/admin.html?master={user_id}"))])
         buttons.append([KeyboardButton(text="📊 Посмотреть записи (Все)")])
+        # Используем BASE_URL здесь
+        buttons.append([KeyboardButton(text="⚙️ Админ-панель", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={user_id}"))])
         buttons.append([KeyboardButton(text="🔗 Моя ссылка")])
 
+    # 2. ШАГ: ЗАРЕГИСТРИРОВАННЫЙ МАСТЕР
     elif is_master:
-        # Добавляем ID в ссылку для мастера
-        buttons.append([KeyboardButton(text="⚙️ Панель мастера",
-                                       web_app=WebAppInfo(url=f"{base_url}/admin.html?master={user_id}"))])
+        buttons.append([KeyboardButton(text="⚙️ Панель мастера", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={user_id}"))])
         buttons.append([
             KeyboardButton(text="🔗 Моя ссылка"),
-            KeyboardButton(text="✂️ Редактировать услуги",
-                           web_app=WebAppInfo(url=f"{base_url}/admin.html?master={user_id}#services"))
+            KeyboardButton(text="✂️ Редактировать услуги", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={user_id}#services"))
         ])
 
-    # 2. ШАГ: МАСТЕР (НЕТ В БАЗЕ)
+    # 3. ШАГ: НОВЫЙ ПОЛЬЗОВАТЕЛЬ (КЛИЕНТ)
     else:
-        # Убрали кнопку "Записаться на груминг", оставили только регистрацию
+        # Для обычного человека оставляем только кнопку регистрации мастера
         buttons.append([KeyboardButton(text="🤝 Стать партнером (Регистрация мастера)")])
 
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)

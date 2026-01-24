@@ -6,192 +6,75 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #1c1c1e; --accent: #2481cc; --gray: #2c2c2e; --text: #ffffff; --hint: #666; }
-        body { font-family: -apple-system, sans-serif; background: #000; color: var(--text); margin: 0; padding: 15px; -webkit-user-select: none; }
-        .section { background: var(--bg); border-radius: 15px; padding: 15px; margin-bottom: 15px; }
-        .label { font-size: 12px; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 12px; display: block; }
-        input { width: 100%; background: var(--gray); border: none; border-radius: 10px; padding: 15px; font-size: 16px; color: #fff; margin-bottom: 10px; box-sizing: border-box; outline: none; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .item { background: var(--gray); padding: 12px; border-radius: 12px; text-align: center; border: 2px solid transparent; cursor: pointer; }
-        .item.active { border-color: var(--accent); background: rgba(36, 129, 204, 0.1); }
-        .item span { font-size: 24px; display: block; margin-bottom: 4px; }
-        .service-card { background: var(--gray); padding: 15px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 2px solid transparent; cursor: pointer; }
-        .service-card.active { border-color: var(--accent); background: rgba(36, 129, 204, 0.1); }
-        .cal-header { display: flex; justify-content: space-between; align-items: center; padding: 5px 0 15px 0; }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
-        .day-header { font-size: 10px; color: var(--hint); text-transform: uppercase; padding-bottom: 8px; }
-        .day { padding: 10px 0; border-radius: 8px; background: var(--gray); font-size: 14px; cursor: pointer; }
-        .day.act { background: var(--accent); color: white; font-weight: bold; }
-        .day.dis { opacity: 0.15; pointer-events: none; }
-        .empty { padding: 10px 0; }
-        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
-        .time { background: var(--gray); padding: 12px 0; border-radius: 8px; text-align: center; cursor: pointer; font-size: 14px; }
-        .time.act { background: var(--accent); color: white; }
-        #loader-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; justify-content:center; align-items:center; z-index:100; }
+        :root { --bg: #1c1c1e; --accent: #2481cc; --text: #ffffff; }
+        body { font-family: -apple-system, sans-serif; background: #000; color: var(--text); margin: 0; padding: 20px; }
+        .studio-name { font-size: 24px; font-weight: bold; margin-bottom: 5px; color: var(--accent); }
+        .service-card { background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-book { background: var(--accent); color: white; border: none; border-radius: 10px; padding: 10px 20px; font-weight: bold; }
+        #loader { text-align: center; margin-top: 50px; }
     </style>
 </head>
 <body>
-
-    <div id="loader-overlay">🐾 Загрузка...</div>
-
-    <div class="section">
-        <span class="label">Студия</span>
-        <h2 id="st-name" style="margin:0">Загрузка...</h2>
+    <div id="main-content" style="display:none;">
+        <div id="master-title" class="studio-name">Загрузка студии...</div>
+        <p style="color: #888; margin-bottom: 25px;">Выберите услугу для записи:</p>
+        <div id="services-list"></div>
     </div>
-
-    <div class="section">
-        <span class="label">Кто ваш любимец?</span>
-        <div class="grid">
-            <div class="item" id="p1" onclick="setPet('Собака', 'p1')"><span>🐶</span>Собака</div>
-            <div class="item" id="p2" onclick="setPet('Кошка', 'p2')"><span>🐱</span>Кошка</div>
-            <div class="item" id="p3" onclick="setPet('Другой', 'p3')"><span>🐰</span>Другой</div>
-        </div>
-        <input type="text" id="breed" placeholder="Порода *" style="margin-top:15px" oninput="check()">
-        <input type="text" id="pname" placeholder="Кличка *" oninput="check()">
-    </div>
-
-    <div class="section">
-        <span class="label">Выберите услугу</span>
-        <div id="srv-list"></div>
-    </div>
-
-    <div class="section">
-        <span class="label">Контактные данные</span>
-        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__ *">
-
-        <span class="label" style="margin-top:20px">Дата и время</span>
-        <div class="cal-header">
-            <button onclick="moveMonth(-1)" style="background:none; border:none; color:var(--accent); font-size:28px">‹</button>
-            <b id="m-name"></b>
-            <button onclick="moveMonth(1)" style="background:none; border:none; color:var(--accent); font-size:28px">›</button>
-        </div>
-        <div class="cal-grid" id="cal-body"></div>
-        <div id="tm-body" class="time-grid"></div>
-    </div>
+    <div id="loader">🐾 Ищем мастера...</div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand();
+        tg.ready();
 
-        const params = new URLSearchParams(location.search);
-        const mId = params.get('master');
         const _sb = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
 
-        let sel = { pet:'', srv:'', date:'', time:'', m: new Date().getMonth(), y: new Date().getFullYear() };
-        const now = new Date();
+        const params = new URLSearchParams(window.location.search);
+        const mId = params.get('master');
 
         async function init() {
-            try {
-                if (!mId) {
-                    document.getElementById('st-name').innerText = "Мастер не выбран";
-                    document.getElementById('srv-list').innerHTML = "<p style='color:#666'>Пожалуйста, используйте прямую ссылку мастера для записи.</p>";
-                } else {
-                   // Используем Number(mId), чтобы точно передать число в базу
-                    const { data: m } = await _sb.from('masters').select('studio_name').eq('telegram_id', Number(mId)).single();
-                    if (m) document.getElementById('st-name').innerText = m.studio_name;
-
-                    const { data: s } = await _sb.from('services').select('*').eq('master_id', mId);
-                    const list = document.getElementById('srv-list');
-                    if (s && s.length > 0) {
-                        s.forEach(i => {
-                            const d = document.createElement('div');
-                            d.className = 'service-card';
-                            d.innerHTML = `<span>${i.name}</span><b>${i.price} ₸</b>`;
-                            d.onclick = () => {
-                                document.querySelectorAll('.service-card').forEach(x => x.classList.remove('active'));
-                                d.classList.add('active'); sel.srv = i.name; check();
-                            };
-                            list.appendChild(d);
-                        });
-                    } else {
-                        list.innerHTML = "<p style='color:#666'>У мастера пока нет услуг.</p>";
-                    }
-                }
-                document.getElementById('loader-overlay').style.display = 'none';
-                renderCal();
-            } catch (e) { console.error(e); }
-        }
-
-        function setPet(v, id) {
-            document.querySelectorAll('.item').forEach(x => x.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            sel.pet = v; check();
-        }
-
-        function moveMonth(v) {
-            let next = new Date(sel.y, sel.m + v, 1);
-            if (next < new Date(now.getFullYear(), now.getMonth(), 1)) return;
-            sel.m = next.getMonth(); sel.y = next.getFullYear();
-            renderCal();
-        }
-
-        function renderCal() {
-            const months = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-            document.getElementById('m-name').innerText = months[sel.m] + " " + sel.y;
-            const body = document.getElementById('cal-body');
-            body.innerHTML = '<div class="day-header">Пн</div><div class="day-header">Вт</div><div class="day-header">Ср</div><div class="day-header">Чт</div><div class="day-header">Пт</div><div class="day-header">Сб</div><div class="day-header">Вс</div>';
-
-            let firstDay = new Date(sel.y, sel.m, 1).getDay();
-            if (firstDay === 0) firstDay = 7;
-            const daysInMonth = new Date(sel.y, sel.m + 1, 0).getDate();
-
-            for (let i = 1; i < firstDay; i++) {
-                const e = document.createElement('div'); e.className = 'empty'; body.appendChild(e);
+            if (!mId) {
+                document.body.innerHTML = "<div style='text-align:center; padding:50px;'>Мастер не найден. Пожалуйста, используйте корректную ссылку.</div>";
+                return;
             }
 
-            for (let i = 1; i <= daysInMonth; i++) {
-                const d = document.createElement('div');
-                d.className = 'day';
-                const dObj = new Date(sel.y, sel.m, i);
-                if (dObj < new Date(now.getFullYear(), now.getMonth(), now.getDate())) d.classList.add('dis');
-                d.innerText = i;
-                d.onclick = () => {
-                    document.querySelectorAll('.day').forEach(x => x.classList.remove('act'));
-                    d.classList.add('act');
-                    sel.date = `${i.toString().padStart(2,'0')}.${(sel.m+1).toString().padStart(2,'0')}.${sel.y}`;
-                    renderTime(i); check();
-                };
-                body.appendChild(d);
+            // 1. Загружаем данные о мастере
+            const { data: master } = await _sb.from('masters').select('studio_name').eq('telegram_id', mId).single();
+            if (master) {
+                document.getElementById('master-title').innerText = master.studio_name;
             }
+
+            // 2. Загружаем услуги мастера
+            const { data: services } = await _sb.from('services').select('*').eq('master_id', mId);
+            const list = document.getElementById('services-list');
+
+            if (services && services.length > 0) {
+                services.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = 'service-card';
+                    div.innerHTML = `
+                        <div><b>${s.name}</b><br><small>${s.price} ₸</small></div>
+                        <button class="btn-book" onclick="startBooking('${s.name}')">Записаться</button>
+                    `;
+                    list.appendChild(div);
+                });
+            } else {
+                list.innerHTML = "<p style='color:#666'>У этого мастера пока нет активных услуг.</p>";
+            }
+
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
         }
 
-        function renderTime(day) {
-            const b = document.getElementById('tm-body'); b.innerHTML = '';
-            [10,11,12,13,14,15,16,17,18,19].forEach(h => {
-                const t = document.createElement('div'); t.className = 'time';
-                if (sel.y === now.getFullYear() && sel.m === now.getMonth() && day === now.getDate() && h <= now.getHours()) t.style.opacity = '0.2';
-                t.innerText = h + ':00';
-                t.onclick = () => {
-                    document.querySelectorAll('.time').forEach(x => x.classList.remove('act'));
-                    t.classList.add('act'); sel.time = h + ':00'; check();
-                };
-                b.appendChild(t);
-            });
-        }
-
-        document.getElementById('phone').oninput = (e) => {
-            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
-            e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + (x[3] ? ') ' + x[3] : '') + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
-            check();
-        };
-
-        function check() {
-            const ok = sel.pet && sel.srv && sel.date && sel.time && document.getElementById('phone').value.length >= 18 && document.getElementById('breed').value && document.getElementById('pname').value;
-            if (ok) { tg.MainButton.show(); tg.MainButton.setText("Записаться"); } else tg.MainButton.hide();
-        }
-
-        tg.MainButton.onClick(() => {
+        function startBooking(serviceName) {
+            // Передаем данные обратно в бот для завершения записи
             tg.sendData(JSON.stringify({
-                action: "client_appointment",
-                master_id: mId,
-                pet_type: sel.pet,
-                breed: document.getElementById('breed').value,
-                pet_name: document.getElementById('pname').value,
-                service: sel.srv,
-                phone: document.getElementById('phone').value,
-                date_time: sel.date + " в " + sel.time
+                action: "book",
+                service: serviceName,
+                master_id: mId
             }));
-        });
+            tg.close();
+        }
+
         init();
     </script>
 </body>
