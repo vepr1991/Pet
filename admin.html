@@ -143,63 +143,6 @@ input:focus {
 .client-row { font-weight:500; }
 .info-row { color:#666; font-size:14px; }
 
-/* ===== Calendar & Time layout (НЕ ТРОГАТЬ ЛОГИКУ) ===== */
-
-.cal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.cal-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-    text-align: center;
-}
-
-.day {
-    padding: 10px 0;
-    border-radius: var(--r-sm);
-    font-size: 14px;
-}
-
-.day.active {
-    background: var(--accent);
-    color: #fff;
-}
-
-.day.disabled {
-    color: #c5c5c5;
-    pointer-events: none;
-}
-
-/* ===== Time slots ===== */
-
-.time-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-top: 14px;
-}
-
-.time-slot {
-    padding: 10px 0;
-    text-align: center;
-    border-radius: var(--r-sm);
-    border: 1px solid var(--border);
-    background: #fafafa;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.time-slot.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-}
-
 /* Modal */
 #custom-modal {
     display:none;

@@ -90,18 +90,59 @@ input:focus {
 }
 .service-item:last-child { border-bottom:none; }
 
-/* Calendar */
-.day,.time-slot {
+/* ===== КАЛЕНДАРЬ ===== */
+.cal-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+}
+
+.cal-grid {
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:6px;
+    text-align:center;
+}
+
+.day {
     padding:10px 0;
     border-radius:var(--r-sm);
-    text-align:center;
     cursor:pointer;
 }
-.day.active,.time-slot.active {
+
+.day.active {
     background:var(--accent);
     color:#fff;
 }
-.day.disabled { color:#ccc; pointer-events:none; }
+
+.day.disabled {
+    color:#ccc;
+    pointer-events:none;
+}
+
+/* ===== ТАЙМ-СЛОТЫ ===== */
+.time-grid {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    margin-top:14px;
+}
+
+.time-slot {
+    padding:10px 0;
+    text-align:center;
+    border-radius:var(--r-sm);
+    border:1px solid var(--border);
+    background:#fafafa;
+    cursor:pointer;
+}
+
+.time-slot.active {
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+}
 
 /* Button */
 .btn-confirm {
@@ -116,14 +157,17 @@ input:focus {
 }
 </style>
 </head>
+
 <body>
-    <div class="card"><h2 id="studio-name" style="margin:0; font-size: 20px;">Загрузка студии...</h2></div>
+    <div class="card">
+        <h2 id="studio-name" style="margin:0; font-size:20px;">Загрузка студии...</h2>
+    </div>
 
     <div class="section-label">Кто ваш любимец?</div>
     <div class="grid-3">
-        <div class="select-card" id="pet-dog" onclick="setPetType('Собака', 'pet-dog')"><span>🐶</span><label>Собака</label></div>
-        <div class="select-card" id="pet-cat" onclick="setPetType('Кошка', 'pet-cat')"><span>🐱</span><label>Кошка</label></div>
-        <div class="select-card" id="pet-other" onclick="setPetType('Другой', 'pet-other')"><span>🐰</span><label>Другой</label></div>
+        <div class="select-card" id="pet-dog" onclick="setPetType('Собака','pet-dog')">🐶<br>Собака</div>
+        <div class="select-card" id="pet-cat" onclick="setPetType('Кошка','pet-cat')">🐱<br>Кошка</div>
+        <div class="select-card" id="pet-other" onclick="setPetType('Другой','pet-other')">🐰<br>Другой</div>
     </div>
 
     <div class="section-label">Данные питомца</div>
@@ -141,9 +185,9 @@ input:focus {
     <div class="section-label">Дата и время</div>
     <div class="card">
         <div class="cal-header">
-            <button onclick="changeMonth(-1)" style="background:none; border:none; color:var(--accent); font-size:18px;">❮</button>
+            <button onclick="changeMonth(-1)" style="background:none;border:none;color:var(--accent);font-size:18px;">❮</button>
             <b id="month-label">Месяц 2026</b>
-            <button onclick="changeMonth(1)" style="background:none; border:none; color:var(--accent); font-size:18px;">❯</button>
+            <button onclick="changeMonth(1)" style="background:none;border:none;color:var(--accent);font-size:18px;">❯</button>
         </div>
         <div class="cal-grid" id="calendar"></div>
         <div class="time-grid" id="time-slots"></div>
@@ -151,128 +195,125 @@ input:focus {
 
     <button class="btn-confirm" onclick="sendBooking()">Записаться</button>
 
+<script>
+const tg = window.Telegram.WebApp;
+const _sb = supabase.createClient(
+    'https://uplcrgnxkafcxejwuggx.supabase.co',
+    'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF'
+);
+const mId = new URLSearchParams(window.location.search).get('master');
 
+let currDate = new Date();
+let booking = { pet_type:"", breed:"", pet_name:"", service:"", phone:"", date:null, time:null, master_id:mId };
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        const _sb = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
-        const mId = new URLSearchParams(window.location.search).get('master');
+document.getElementById('p-phone').addEventListener('input', function(e) {
+    let x = e.target.value.replace(/\D/g,'').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
+    e.target.value = !x[2] ? x[1] : '+7 ('+x[2]+(x[3]?') '+x[3]:'')+(x[4]?'-'+x[4]:'')+(x[5]?'-'+x[5]:'');
+});
 
-        let currDate = new Date();
-        let booking = { pet_type: "", breed: "", pet_name: "", service: "", phone: "", date: null, time: null, master_id: mId };
+async function init() {
+    tg.ready(); tg.expand();
+    if (!mId) return;
 
-        // Маска телефона
-        document.getElementById('p-phone').addEventListener('input', function(e) {
-            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
-            e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + (x[3] ? ') ' + x[3] : '') + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
+    const { data:m } = await _sb.from('masters').select('studio_name').eq('telegram_id', Number(mId)).single();
+    if (m) document.getElementById('studio-name').innerText = m.studio_name;
+
+    const { data:srv } = await _sb.from('services').select('*').eq('master_id', Number(mId));
+    const container = document.getElementById('services-container');
+    container.innerHTML = "";
+
+    if (srv && srv.length) {
+        srv.forEach(s => {
+            const item = document.createElement('div');
+            item.className = 'service-item';
+            item.innerHTML = `<span>${s.name}</span><b>${s.price} ₸</b>`;
+            item.onclick = () => {
+                document.querySelectorAll('.service-item').forEach(el=>el.classList.remove('active'));
+                item.classList.add('active');
+                booking.service = s.name;
+            };
+            container.appendChild(item);
         });
+    } else {
+        container.innerHTML = '<div style="padding:20px;color:#666;text-align:center">Мастер еще не добавил услуги.</div>';
+    }
 
-        async function init() {
-            tg.ready(); tg.expand();
-            if (!mId) return;
+    renderCalendar();
+}
 
-            // Загрузка названия студии
-            const { data: m } = await _sb.from('masters').select('studio_name').eq('telegram_id', Number(mId)).single();
-            if (m) document.getElementById('studio-name').innerText = m.studio_name;
+function setPetType(type,id){
+    document.querySelectorAll('.select-card').forEach(el=>el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    booking.pet_type = type;
+}
 
-            // Загрузка услуг мастера
-            const { data: srv } = await _sb.from('services').select('*').eq('master_id', Number(mId));
-            const container = document.getElementById('services-container');
-            container.innerHTML = "";
+function renderCalendar(){
+    const grid = document.getElementById('calendar');
+    const label = document.getElementById('month-label');
+    grid.innerHTML = "";
 
-            if (srv && srv.length > 0) {
-                srv.forEach(s => {
-                    const item = document.createElement('div');
-                    item.className = 'service-item';
-                    item.innerHTML = `<span>${s.name}</span><b>${s.price} ₸</b>`;
-                    item.onclick = () => {
-                        document.querySelectorAll('.service-item').forEach(el => el.classList.remove('active'));
-                        item.classList.add('active');
-                        booking.service = s.name;
-                    };
-                    container.appendChild(item);
-                });
-            } else {
-                container.innerHTML = '<div style="padding:20px; color:#666; text-align:center">Мастер еще не добавил услуги.</div>';
-            }
+    const month = currDate.getMonth();
+    const year = currDate.getFullYear();
+    label.innerText = new Intl.DateTimeFormat('ru-RU',{month:'long',year:'numeric'}).format(currDate);
 
-            renderCalendar();
-        }
+    const firstDayRaw = new Date(year,month,1).getDay();
+    const firstDay = firstDayRaw===0?6:firstDayRaw-1;
+    const daysInMonth = new Date(year,month+1,0).getDate();
 
-        function setPetType(type, id) {
-            document.querySelectorAll('.select-card').forEach(el => el.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            booking.pet_type = type;
-        }
+    for(let i=0;i<firstDay;i++) grid.appendChild(document.createElement('div'));
 
-        function renderCalendar() {
-            const grid = document.getElementById('calendar');
-            const label = document.getElementById('month-label');
-            grid.innerHTML = "";
+    for(let d=1;d<=daysInMonth;d++){
+        const div=document.createElement('div');
+        div.className='day';
+        div.innerText=d;
+        const dateStr=`${String(d).padStart(2,'0')}.${String(month+1).padStart(2,'0')}.${year}`;
+        if(new Date(year,month,d)<new Date().setHours(0,0,0,0)) div.classList.add('disabled');
 
-            const month = currDate.getMonth();
-            const year = currDate.getFullYear();
-            label.innerText = new Intl.DateTimeFormat('ru-RU', {month:'long', year:'numeric'}).format(currDate);
+        div.onclick=()=>{
+            document.querySelectorAll('.day').forEach(el=>el.classList.remove('active'));
+            div.classList.add('active');
+            booking.date=dateStr;
+            renderTime();
+        };
+        grid.appendChild(div);
+    }
+}
 
-            const firstDayRaw = new Date(year, month, 1).getDay();
-            const firstDay = firstDayRaw === 0 ? 6 : firstDayRaw - 1;
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+function renderTime(){
+    const grid=document.getElementById('time-slots');
+    grid.innerHTML="";
+    for(let h=9;h<=20;h++){
+        const div=document.createElement('div');
+        div.className='time-slot';
+        div.innerText=`${h}:00`;
+        div.onclick=()=>{
+            document.querySelectorAll('.time-slot').forEach(el=>el.classList.remove('active'));
+            div.classList.add('active');
+            booking.time=`${h}:00`;
+        };
+        grid.appendChild(div);
+    }
+}
 
-            for(let i=0; i < firstDay; i++) grid.appendChild(document.createElement('div'));
+function changeMonth(dir){
+    currDate.setMonth(currDate.getMonth()+dir);
+    renderCalendar();
+}
 
-            for(let d=1; d<=daysInMonth; d++) {
-                const div = document.createElement('div');
-                div.className = 'day';
-                div.innerText = d;
-                const dateStr = `${String(d).padStart(2, '0')}.${String(month+1).padStart(2, '0')}.${year}`;
-                if (new Date(year, month, d) < new Date().setHours(0,0,0,0)) div.classList.add('disabled');
+function sendBooking(){
+    booking.breed=document.getElementById('p-breed').value;
+    booking.pet_name=document.getElementById('p-name').value;
+    booking.phone=document.getElementById('p-phone').value;
 
-                div.onclick = () => {
-                    document.querySelectorAll('.day').forEach(el => el.classList.remove('active'));
-                    div.classList.add('active');
-                    booking.date = dateStr;
-                    renderTime();
-                };
-                grid.appendChild(div);
-            }
-        }
+    if(!booking.pet_type||!booking.service||!booking.breed||!booking.pet_name||!booking.date||!booking.time||booking.phone.length<17){
+        return tg.showAlert("Пожалуйста, заполните все поля со звездочкой!");
+    }
 
-        function renderTime() {
-            const grid = document.getElementById('time-slots');
-            grid.innerHTML = "";
-            for(let h=9; h<=20; h++) {
-                const t = `${h}:00`;
-                const div = document.createElement('div');
-                div.className = 'time-slot';
-                div.innerText = t;
-                div.onclick = () => {
-                    document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('active'));
-                    div.classList.add('active');
-                    booking.time = t;
-                };
-                grid.appendChild(div);
-            }
-        }
+    tg.sendData(JSON.stringify(booking));
+    tg.close();
+}
 
-        function changeMonth(dir) {
-            currDate.setMonth(currDate.getMonth() + dir);
-            renderCalendar();
-        }
-
-        function sendBooking() {
-            booking.breed = document.getElementById('p-breed').value;
-            booking.pet_name = document.getElementById('p-name').value;
-            booking.phone = document.getElementById('p-phone').value;
-
-            if(!booking.pet_type || !booking.service || !booking.breed || !booking.pet_name || !booking.date || !booking.time || booking.phone.length < 17) {
-                return tg.showAlert("Пожалуйста, заполните все поля со звездочкой!");
-            }
-
-            tg.sendData(JSON.stringify(booking));
-            tg.close();
-        }
-
-        init();
-    </script>
+init();
+</script>
 </body>
 </html>
