@@ -1,42 +1,39 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta charset="UTF-8" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
-<body style="background: #000; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif;">
-    <div id="loader">🐾 Вход в PETGroom...</div>
+
+<body
+    style="
+        background:#f6f7f8;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        height:100vh;
+        margin:0;
+        font-family:-apple-system, Inter, sans-serif;
+        color:#374151;
+    "
+>
+    <div>Загрузка сервиса…</div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
 
-        function route() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const masterFromUrl = urlParams.get('master');
-            const startParam = tg.initDataUnsafe.start_param;
+        setTimeout(() => {
+            const params = new URLSearchParams(location.search);
+            const master = params.get("master");
             const userId = tg.initDataUnsafe.user?.id;
 
-            // 1. Если в ссылке уже есть ID или он пришел через startapp (это КЛИЕНТ)
-            const mId = masterFromUrl || startParam;
-
-            if (mId) {
-                console.log("Маршрут: Клиент -> Мастер", mId);
-                window.location.replace(`client.html?master=${mId}`);
+            if (master) {
+                location.replace(`client.html?master=${master}`);
+            } else if (userId) {
+                location.replace(`admin.html?master=${userId}`);
             }
-            // 2. Если параметров нет (это МАСТЕР, зашедший через кнопку бота)
-            else if (userId) {
-                console.log("Маршрут: Мастер/Админ", userId);
-                window.location.replace(`admin.html?master=${userId}`);
-            }
-            else {
-                document.getElementById('loader').innerText = "Ошибка: ID не найден. Перезапустите бота.";
-            }
-        }
-
-        // Даем Telegram 250мс на инициализацию данных
-        setTimeout(route, 250);
+        }, 250);
     </script>
 </body>
 </html>
