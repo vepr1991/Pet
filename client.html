@@ -8,153 +8,29 @@
 
 <style>
 :root {
-    --bg:#f7f7f6;
-    --card:#ffffff;
-    --border:#e6e6e3;
-    --text:#1f1f1f;
-    --muted:#8f8f8f;
-    --accent:#8fb6a3;
-    --accent-soft:rgba(143,182,163,.15);
-    --r-sm:8px;
-    --r-md:12px;
+    --bg:#f7f7f6; --card:#ffffff; --border:#e6e6e3; --text:#1f1f1f; --muted:#8f8f8f;
+    --accent:#8fb6a3; --accent-soft:rgba(143,182,163,.15); --r-sm:8px; --r-md:12px;
 }
-
-body {
-    margin:0;
-    padding:16px;
-    font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
-    background:var(--bg);
-    color:var(--text);
-}
-
-/* Card */
-.card {
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:var(--r-md);
-    padding:16px;
-    margin-bottom:16px;
-}
-
-/* Section label */
-.section-label {
-    font-size:11px;
-    text-transform:uppercase;
-    color:var(--muted);
-    margin:16px 0 8px;
-}
-
-/* Pet select */
-.grid-3 {
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:10px;
-}
-.select-card {
-    border:1px solid var(--border);
-    border-radius:var(--r-md);
-    padding:12px;
-    text-align:center;
-    cursor:pointer;
-}
-.select-card.active {
-    border-color:var(--accent);
-    background:var(--accent-soft);
-}
-
-/* Inputs */
-input {
-    width:100%;
-    padding:14px;
-    border-radius:var(--r-sm);
-    border:1px solid var(--border);
-    background:#fafafa;
-    font-size:15px;
-    margin-bottom:10px;
-}
-input:focus {
-    border-color:var(--accent);
-    outline:none;
-}
-
-/* Services */
-.service-item {
-    display:flex;
-    justify-content:space-between;
-    padding:14px;
-    border-bottom:1px solid var(--border);
-    cursor:pointer;
-}
-.service-item.active {
-    background:var(--accent-soft);
-}
+body { margin:0; padding:16px; font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif; background:var(--bg); color:var(--text); }
+.card { background:var(--card); border:1px solid var(--border); border-radius:var(--r-md); padding:16px; margin-bottom:16px; }
+.section-label { font-size:11px; text-transform:uppercase; color:var(--muted); margin:16px 0 8px; }
+.grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.select-card { border:1px solid var(--border); border-radius:var(--r-md); padding:12px; text-align:center; cursor:pointer; }
+.select-card.active { border-color:var(--accent); background:var(--accent-soft); }
+input { width:100%; padding:14px; border-radius:var(--r-sm); border:1px solid var(--border); background:#fafafa; font-size:15px; margin-bottom:10px; box-sizing:border-box; }
+input:focus { border-color:var(--accent); outline:none; }
+.service-item { display:flex; justify-content:space-between; padding:14px; border-bottom:1px solid var(--border); cursor:pointer; }
+.service-item.active { background:var(--accent-soft); }
 .service-item:last-child { border-bottom:none; }
-
-/* ===== КАЛЕНДАРЬ ===== */
-.cal-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:12px;
-}
-
-.cal-grid {
-    display:grid;
-    grid-template-columns:repeat(7,1fr);
-    gap:6px;
-    text-align:center;
-}
-
-.day {
-    padding:10px 0;
-    border-radius:var(--r-sm);
-    cursor:pointer;
-}
-
-.day.active {
-    background:var(--accent);
-    color:#fff;
-}
-
-.day.disabled {
-    color:#ccc;
-    pointer-events:none;
-}
-
-/* ===== ТАЙМ-СЛОТЫ ===== */
-.time-grid {
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:8px;
-    margin-top:14px;
-}
-
-.time-slot {
-    padding:10px 0;
-    text-align:center;
-    border-radius:var(--r-sm);
-    border:1px solid var(--border);
-    background:#fafafa;
-    cursor:pointer;
-}
-
-.time-slot.active {
-    background:var(--accent);
-    border-color:var(--accent);
-    color:#fff;
-}
-
-/* Button */
-.btn-confirm {
-    width:100%;
-    padding:16px;
-    border:none;
-    border-radius:var(--r-md);
-    background:var(--accent);
-    color:#fff;
-    font-size:16px;
-    font-weight:500;
-}
+.cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center; }
+.day { padding:10px 0; border-radius:var(--r-sm); cursor:pointer; }
+.day.active { background:var(--accent); color:#fff; }
+.day.disabled { color:#ccc; pointer-events:none; }
+.time-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:14px; }
+.time-slot { padding:10px 0; text-align:center; border-radius:var(--r-sm); border:1px solid var(--border); background:#fafafa; cursor:pointer; }
+.time-slot.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn-confirm { width:100%; padding:16px; border:none; border-radius:var(--r-md); background:var(--accent); color:#fff; font-size:16px; font-weight:500; }
 </style>
 </head>
 
@@ -196,131 +72,137 @@ input:focus {
     <button class="btn-confirm" onclick="sendBooking()">Записаться</button>
 
 <script>
-const tg = window.Telegram.WebApp;
-const _sb = supabase.createClient(
-    'https://uplcrgnxkafcxejwuggx.supabase.co',
-    'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF'
-);
-const mId = new URLSearchParams(window.location.search).get('master');
+    const tg = window.Telegram.WebApp;
+    // Твой Supabase
+    const _sb = supabase.createClient(
+        'https://uplcrgnxkafcxejwuggx.supabase.co',
+        'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF'
+    );
 
-let currDate = new Date();
-let booking = { pet_type:"", breed:"", pet_name:"", service:"", phone:"", date:null, time:null, master_id:mId };
+    // Получаем ID мастера из URL
+    const mId = new URLSearchParams(window.location.search).get('master');
 
-document.getElementById('p-phone').addEventListener('input', function(e) {
-    let x = e.target.value.replace(/\D/g,'').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
-    e.target.value = !x[2] ? x[1] : '+7 ('+x[2]+(x[3]?') '+x[3]:'')+(x[4]?'-'+x[4]:'')+(x[5]?'-'+x[5]:'');
-});
+    let currDate = new Date();
+    let booking = { pet_type:"", breed:"", pet_name:"", service:"", phone:"", date:null, time:null, master_id:mId };
 
-async function init() {
-    tg.ready(); tg.expand();
-    if (!mId) return;
+    // Маска для телефона
+    document.getElementById('p-phone').addEventListener('input', function(e) {
+        let x = e.target.value.replace(/\D/g,'').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
+        e.target.value = !x[2] ? x[1] : '+7 ('+x[2]+(x[3]?') '+x[3]:'')+(x[4]?'-'+x[4]:'')+(x[5]?'-'+x[5]:'');
+    });
 
-    const { data:m } = await _sb.from('masters').select('studio_name').eq('telegram_id', Number(mId)).single();
-    if (m) document.getElementById('studio-name').innerText = m.studio_name;
+    async function init() {
+        tg.ready(); tg.expand();
 
-    const { data:srv } = await _sb.from('services').select('*').eq('master_id', Number(mId));
-    const container = document.getElementById('services-container');
-    container.innerHTML = "";
+        if (!mId) {
+            document.body.innerHTML = "<div style='padding:20px;text-align:center'>Ошибка: Ссылка не содержит ID мастера.<br>Зайдите через бота.</div>";
+            return;
+        }
 
-    if (srv && srv.length) {
-        srv.forEach(s => {
-            const item = document.createElement('div');
-            item.className = 'service-item';
-            item.innerHTML = `<span>${s.name}</span><b>${s.price} ₸</b>`;
-            item.onclick = () => {
-                document.querySelectorAll('.service-item').forEach(el=>el.classList.remove('active'));
-                item.classList.add('active');
-                booking.service = s.name;
+        // Загружаем имя студии
+        const { data:m } = await _sb.from('masters').select('studio_name').eq('telegram_id', Number(mId)).single();
+        if (m) document.getElementById('studio-name').innerText = m.studio_name;
+
+        // Загружаем услуги
+        const { data:srv } = await _sb.from('services').select('*').eq('master_id', Number(mId));
+        const container = document.getElementById('services-container');
+        container.innerHTML = "";
+
+        if (srv && srv.length) {
+            srv.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'service-item';
+                item.innerHTML = `<span>${s.name}</span><b>${s.price} ₸</b>`;
+                item.onclick = () => {
+                    document.querySelectorAll('.service-item').forEach(el=>el.classList.remove('active'));
+                    item.classList.add('active');
+                    booking.service = s.name;
+                };
+                container.appendChild(item);
+            });
+        } else {
+            container.innerHTML = '<div style="padding:20px;color:#666;text-align:center">Мастер еще не добавил услуги.</div>';
+        }
+
+        renderCalendar();
+    }
+
+    function setPetType(type,id){
+        document.querySelectorAll('.select-card').forEach(el=>el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        booking.pet_type = type;
+    }
+
+    function renderCalendar(){
+        const grid = document.getElementById('calendar');
+        const label = document.getElementById('month-label');
+        grid.innerHTML = "";
+
+        const month = currDate.getMonth();
+        const year = currDate.getFullYear();
+        label.innerText = new Intl.DateTimeFormat('ru-RU',{month:'long',year:'numeric'}).format(currDate);
+
+        const firstDayRaw = new Date(year,month,1).getDay();
+        const firstDay = firstDayRaw===0?6:firstDayRaw-1;
+        const daysInMonth = new Date(year,month+1,0).getDate();
+
+        for(let i=0;i<firstDay;i++) grid.appendChild(document.createElement('div'));
+
+        for(let d=1;d<=daysInMonth;d++){
+            const div=document.createElement('div');
+            div.className='day';
+            div.innerText=d;
+            const dateStr=`${String(d).padStart(2,'0')}.${String(month+1).padStart(2,'0')}.${year}`;
+            if(new Date(year,month,d)<new Date().setHours(0,0,0,0)) div.classList.add('disabled');
+
+            div.onclick=()=>{
+                document.querySelectorAll('.day').forEach(el=>el.classList.remove('active'));
+                div.classList.add('active');
+                booking.date=dateStr;
+                renderTime();
             };
-            container.appendChild(item);
-        });
-    } else {
-        container.innerHTML = '<div style="padding:20px;color:#666;text-align:center">Мастер еще не добавил услуги.</div>';
+            grid.appendChild(div);
+        }
     }
 
-    renderCalendar();
-}
-
-function setPetType(type,id){
-    document.querySelectorAll('.select-card').forEach(el=>el.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    booking.pet_type = type;
-}
-
-function renderCalendar(){
-    const grid = document.getElementById('calendar');
-    const label = document.getElementById('month-label');
-    grid.innerHTML = "";
-
-    const month = currDate.getMonth();
-    const year = currDate.getFullYear();
-    label.innerText = new Intl.DateTimeFormat('ru-RU',{month:'long',year:'numeric'}).format(currDate);
-
-    const firstDayRaw = new Date(year,month,1).getDay();
-    const firstDay = firstDayRaw===0?6:firstDayRaw-1;
-    const daysInMonth = new Date(year,month+1,0).getDate();
-
-    for(let i=0;i<firstDay;i++) grid.appendChild(document.createElement('div'));
-
-    for(let d=1;d<=daysInMonth;d++){
-        const div=document.createElement('div');
-        div.className='day';
-        div.innerText=d;
-        const dateStr=`${String(d).padStart(2,'0')}.${String(month+1).padStart(2,'0')}.${year}`;
-        if(new Date(year,month,d)<new Date().setHours(0,0,0,0)) div.classList.add('disabled');
-
-        div.onclick=()=>{
-            document.querySelectorAll('.day').forEach(el=>el.classList.remove('active'));
-            div.classList.add('active');
-            booking.date=dateStr;
-            renderTime();
-        };
-        grid.appendChild(div);
-    }
-}
-
-function renderTime(){
-    const grid=document.getElementById('time-slots');
-    grid.innerHTML="";
-    for(let h=9;h<=20;h++){
-        const div=document.createElement('div');
-        div.className='time-slot';
-        div.innerText=`${h}:00`;
-        div.onclick=()=>{
-            document.querySelectorAll('.time-slot').forEach(el=>el.classList.remove('active'));
-            div.classList.add('active');
-            booking.time=`${h}:00`;
-        };
-        grid.appendChild(div);
-    }
-}
-
-function changeMonth(dir){
-    currDate.setMonth(currDate.getMonth()+dir);
-    renderCalendar();
-}
-
-function sendBooking() {
-    booking.breed = document.getElementById('p-breed').value;
-    booking.pet_name = document.getElementById('p-name').value;
-    booking.phone = document.getElementById('p-phone').value;
-
-    // ДОБАВЛЕНО: Берем username
-    booking.username = tg.initDataUnsafe.user?.username || "";
-
-    if(!booking.pet_type || !booking.service || !booking.breed || !booking.pet_name || !booking.date || !booking.time || booking.phone.length < 17) {
-        return tg.showAlert("Пожалуйста, заполните все поля со звездочкой!");
+    function renderTime(){
+        const grid=document.getElementById('time-slots');
+        grid.innerHTML="";
+        for(let h=9;h<=20;h++){
+            const div=document.createElement('div');
+            div.className='time-slot';
+            div.innerText=`${h}:00`;
+            div.onclick=()=>{
+                document.querySelectorAll('.time-slot').forEach(el=>el.classList.remove('active'));
+                div.classList.add('active');
+                booking.time=`${h}:00`;
+            };
+            grid.appendChild(div);
+        }
     }
 
-    tg.sendData(JSON.stringify(booking));
-    tg.close();
-}
+    function changeMonth(dir){
+        currDate.setMonth(currDate.getMonth()+dir);
+        renderCalendar();
+    }
 
-    tg.sendData(JSON.stringify(booking));
-    tg.close();
-}
+    function sendBooking() {
+        booking.breed = document.getElementById('p-breed').value;
+        booking.pet_name = document.getElementById('p-name').value;
+        booking.phone = document.getElementById('p-phone').value;
 
-init();
+        // Сохраняем username для мастера
+        booking.username = tg.initDataUnsafe.user?.username || "";
+
+        if(!booking.pet_type || !booking.service || !booking.breed || !booking.pet_name || !booking.date || !booking.time || booking.phone.length < 17) {
+            return tg.showAlert("Пожалуйста, заполните все поля со звездочкой!");
+        }
+
+        tg.sendData(JSON.stringify(booking));
+        tg.close();
+    }
+
+    init();
 </script>
 </body>
 </html>
