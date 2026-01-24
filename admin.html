@@ -156,18 +156,35 @@
             });
         }
 
-        async function addService() {
-            const name = document.getElementById('srv-name').value;
-            const price = document.getElementById('srv-price').value;
-            if (!name || !price) return;
+async function addService() {
+    const name = document.getElementById('srv-name').value;
+    const price = document.getElementById('srv-price').value;
 
-            const { error } = await _sb.from('services').insert([{ master_id: mId, name, price: parseInt(price) }]);
-            if (!error) {
-                document.getElementById('srv-name').value = '';
-                document.getElementById('srv-price').value = '';
-                loadServices();
-            } else { tg.showAlert("Ошибка при сохранении"); }
+    // Проверка на пустоту
+    if (!name || !price) {
+        tg.showAlert("Заполните название и цену!");
+        return;
+    }
+
+    // Важно: передаем mId как Number, чтобы база его приняла
+    const { error } = await _sb.from('services').insert([
+        {
+            master_id: Number(mId),
+            name: name,
+            price: parseInt(price)
         }
+    ]);
+
+    if (!error) {
+        document.getElementById('srv-name').value = '';
+        document.getElementById('srv-price').value = '';
+        tg.showScanQrPopup && tg.showAlert("Услуга добавлена ✅"); // Маленькая обратная связь
+        loadServices();
+    } else {
+        console.error("Ошибка Supabase:", error);
+        tg.showAlert("Ошибка: " + error.message);
+    }
+}
 
         async function delService(id) {
             if (confirm("Удалить услугу из прайса?")) {
