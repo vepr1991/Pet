@@ -21,7 +21,7 @@
         body {
             margin:0; padding:16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background:var(--bg); color:var(--text);
-            -webkit-tap-highlight-color: transparent; /* Убирает синий квадрат при клике на Android */
+            -webkit-tap-highlight-color: transparent;
             padding-bottom: 50px;
         }
 
@@ -50,23 +50,24 @@
         .client-name { font-size: 18px; font-weight: 600; margin-bottom: 2px; }
         .info-row { font-size: 14px; color: #666; margin-bottom: 4px; }
 
-        /* ВАЖНО: Делаем номер телефона выделяемым и копируемым */
+        /* НОМЕР ТЕЛЕФОНА: выделяем + по тапу копируем */
         .selectable-phone {
             font-size: 16px;
             font-weight: 500;
             color: var(--text);
             margin: 8px 0;
-            padding: 4px 0;
-            /* Эти свойства разрешают выделение текста на iPhone */
+            padding: 6px 8px;
+            border-radius: 10px;
+            background: #f2f2f7;
             -webkit-user-select: text;
             user-select: text;
-            cursor: text;
+            cursor: pointer;
         }
+        .selectable-phone:active { opacity: 0.7; }
 
         /* КНОПКИ ДЕЙСТВИЙ */
         .btns-row { display: flex; gap: 10px; margin-top: 12px; }
 
-        /* Общий стиль ссылок-кнопок */
         .action-link {
             flex: 1;
             text-align: center;
@@ -80,15 +81,15 @@
             justify-content: center;
             gap: 6px;
             transition: 0.1s opacity, 0.1s transform;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
-        /* Эффект нажатия (мигание) */
         .action-link:active {
             opacity: 0.6;
             transform: scale(0.97);
         }
 
-        /* Цвета кнопок */
         .btn-call { background: #eef5ff; color: #007aff; }
         .btn-write { background: #effff3; color: #34c759; cursor: pointer; }
 
@@ -148,6 +149,99 @@
         let mId = Number(params.get('master')) || Number(tg.initDataUnsafe.user?.id);
         let serviceToDeleteId = null;
 
+        // --- helpers ---
+        function normalizePhone(raw) {
+            if (!raw) return '';
+            let s = String(raw).trim();
+
+            // оставляем только цифры и +
+            s = s.replace(/[^\d+]/g, '');
+
+            // если начинается с 8XXXXXXXXXX -> +7XXXXXXXXXX
+            if (s.startsWith('8') && s.length === 11) s = '+7' + s.slice(1);
+
+            // если начинается с 7XXXXXXXXXX -> +7XXXXXXXXXX
+            if (s.startsWith('7') && s.length === 11) s = '+' + s;
+
+            // если уже +7... оставляем
+            return s;
+        }
+
+        async function copyToClipboard(text) {
+            const value = String(text || '').trim();
+            if (!value) return false;
+
+            // 1) modern API
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(value);
+                    return true;
+                }
+            } catch (e) {}
+
+            // 2) fallback (iOS WebView часто именно так)
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = value;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.top = '-1000px';
+                document.body.appendChild(ta);
+                ta.select();
+                ta.setSelectionRange(0, ta.value.length);
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                return ok;
+            } catch (e) {}
+
+            return false;
+        }
+
+        async function onPhoneTap(el) {
+            try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+            const phone = el?.dataset?.phone || '';
+            const ok = await copyToClipboard(phone);
+            if (ok) {
+                tg.showAlert("Скопировано");
+            } else {
+                tg.showAlert("Не удалось скопировать. Нажмите и удерживайте номер → Копировать.");
+            }
+        }
+
+        function openChat(userId, username) {
+            try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+
+            const id = String(userId || '').trim();
+            let un = String(username || '').trim();
+            if (un.startsWith('@')) un = un.slice(1);
+
+            // 1) Самый надежный вариант — username
+            if (un && un !== 'undefined' && un !== 'null') {
+                tg.openTelegramLink(`https://t.me/${un}`);
+                return;
+            }
+
+            // 2) По userId Telegram часто НЕ открывает чат (особенно iOS). Пробуем, но без гарантий.
+            if (!id || id === 'undefined' || id === 'null') {
+                tg.showAlert("Ошибка: ID пользователя не найден");
+                return;
+            }
+
+            // Попытка deep-link (может сработать на Android, в iOS часто нет)
+            const deep = `tg://user?id=${id}`;
+            try {
+                // openTelegramLink официально под t.me, но иногда принимает tg://
+                tg.openTelegramLink(deep);
+            } catch (e) {}
+
+            try {
+                window.location.href = deep;
+            } catch (e) {}
+
+            // Честное сообщение (почему может не работать)
+            tg.showAlert("Telegram может не открыть чат по ID. Надежный вариант — сохранить username клиента (t.me/username).");
+        }
+
         async function init() {
             tg.ready(); tg.expand();
             if (!mId) {
@@ -191,8 +285,18 @@
                 const client = a.client_name || 'Клиент';
                 const breed = a.breed || 'Питомец';
                 const petName = a.pet_name ? `(${a.pet_name})` : '';
-                const phone = a.phone || '';
+                const phoneRaw = a.phone || '';
+                const phoneTel = normalizePhone(phoneRaw);      // для tel:
+                const phoneCopy = phoneRaw || phoneTel || '';  // что копируем
+
                 const userId = a.user_id;
+
+                // если у тебя в БД уже есть username — используй:
+                // a.username или a.tg_username (поддержал оба)
+                const username = a.username || a.tg_username || '';
+
+                // ВАЖНО: tel: должен быть чистым, иначе iPhone не открывает звонилку
+                const telHref = phoneTel ? `tel:${phoneTel}` : `tel:${phoneRaw.replace(/[^\d+]/g,'')}`;
 
                 div.innerHTML = `
                     <div class="appt-time">📅 ${a.date_time}</div>
@@ -200,28 +304,26 @@
                     <div class="info-row">🐶 ${breed} ${petName}</div>
                     <div class="info-row">✂️ ${a.service}</div>
 
-                    <div class="selectable-phone">📞 ${phone}</div>
+                    <div class="selectable-phone" data-phone="${String(phoneCopy).replace(/"/g,'&quot;')}">📞 ${phoneRaw || phoneTel}</div>
 
                     <div class="btns-row">
-                        <a href="tel:${phone}" class="action-link btn-call">Позвонить</a>
-
-                        <div onclick="openChat('${userId}')" class="action-link btn-write">Написать</div>
+                        <a href="${telHref}" class="action-link btn-call">Позвонить</a>
+                        <div class="action-link btn-write" role="button" tabindex="0">Написать</div>
                     </div>
                 `;
+
+                // Навешиваем обработчики безопасно (без проблем с кавычками)
+                const phoneEl = div.querySelector('.selectable-phone');
+                phoneEl.addEventListener('click', () => onPhoneTap(phoneEl));
+
+                const writeEl = div.querySelector('.btn-write');
+                writeEl.addEventListener('click', () => openChat(userId, username));
+                writeEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') openChat(userId, username);
+                });
+
                 list.appendChild(div);
             });
-        }
-
-        function openChat(userId) {
-            // Вибрация при нажатии (Haptic Feedback)
-            tg.HapticFeedback.impactOccurred('light');
-
-            if (!userId || userId === 'undefined' || userId === 'null') {
-                tg.showAlert("Ошибка: ID пользователя не найден");
-                return;
-            }
-            // Правильный метод для Web App
-            tg.openTelegramLink(`tg://user?id=${userId}`);
         }
 
         async function loadServices() {
