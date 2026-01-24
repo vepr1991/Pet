@@ -1,54 +1,175 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root { --bg: #000; --card: #1c1c1e; --accent: #2481cc; --red: #ff3b30; --text: #fff; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        /* Заголовки и меню */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .tab-menu { display: flex; gap: 8px; margin-bottom: 20px; background: #111; padding: 4px; border-radius: 12px; }
-        .tab { flex: 1; padding: 10px; text-align: center; border-radius: 10px; cursor: pointer; font-size: 14px; color: #888; transition: 0.2s; }
-        .tab.active { background: #2c2c2e; color: #fff; font-weight: bold; }
-        .section { display: none; }
-        .section.active { display: block; }
+<style>
+:root {
+    --bg:#f7f7f6;
+    --card:#ffffff;
+    --border:#e6e6e3;
+    --text:#1f1f1f;
+    --muted:#8f8f8f;
+    --accent:#8fb6a3;
+    --accent-soft:rgba(143,182,163,.15);
+    --danger:#e05a4f;
+    --r-sm:8px;
+    --r-md:12px;
+}
 
-        /* Карточки */
-        .card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #2c2c2e; }
-        .label { font-size: 11px; color: var(--accent); text-transform: uppercase; font-weight: bold; margin-bottom: 10px; display: block; letter-spacing: 0.5px; }
+body {
+    margin:0;
+    padding:16px;
+    font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
 
-        /* Поля ввода */
-        input { width: 100%; background: #2c2c2e; border: none; border-radius: 10px; padding: 14px; color: #fff; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
+/* Header */
+.header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+.header h2 {
+    margin:0;
+    font-size:20px;
+    font-weight:600;
+}
+.header small { color:var(--muted); }
 
-        /* Кнопки */
-        .btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: 12px; padding: 14px; font-weight: bold; font-size: 16px; margin-top: 5px; cursor: pointer; }
+/* Tabs */
+.tab-menu {
+    display:flex;
+    gap:6px;
+    background:#ededeb;
+    padding:4px;
+    border-radius:var(--r-md);
+    margin-bottom:20px;
+}
+.tab {
+    flex:1;
+    text-align:center;
+    padding:10px;
+    font-size:14px;
+    color:#666;
+    border-radius:var(--r-sm);
+    cursor:pointer;
+}
+.tab.active {
+    background:var(--card);
+    color:var(--text);
+    font-weight:500;
+}
 
-        /* Список услуг */
-        .service-row { display: flex; justify-content: space-between; align-items: center; padding: 14px; border-bottom: 1px solid #2c2c2e; }
-        .service-row:last-child { border-bottom: none; }
-        .btn-del { background: rgba(255, 59, 48, 0.15); border: none; color: var(--red); width: 32px; height: 32px; border-radius: 8px; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+/* Sections */
+.section { display:none; }
+.section.active { display:block; }
 
-        /* Карточка записи */
-        .appt-card { border-left: 4px solid var(--accent); position: relative; }
-        .appt-time { color: var(--accent); font-weight: 800; font-size: 15px; margin-bottom: 6px; }
-        .client-row { font-size: 17px; font-weight: bold; margin-bottom: 4px; }
-        .info-row { font-size: 14px; color: #aaa; margin-bottom: 2px; }
-        .call-btn { display: inline-block; margin-top: 12px; color: var(--accent); text-decoration: none; font-weight: bold; font-size: 15px; padding: 8px 0; }
+/* Cards */
+.card {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--r-md);
+    padding:16px;
+    margin-bottom:12px;
+}
 
-        /* Кастомное модальное окно (чтобы убрать домен) */
-        #custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 999; align-items: center; justify-content: center; }
-        .modal-box { background: #1c1c1e; padding: 20px; border-radius: 16px; width: 80%; max-width: 300px; text-align: center; border: 1px solid #333; }
-        .modal-text { font-size: 18px; margin-bottom: 20px; color: #fff; }
-        .modal-btns { display: flex; gap: 10px; }
-        .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; }
-        .m-yes { background: var(--red); color: #fff; }
-        .m-no { background: #3a3a3c; color: #fff; }
-    </style>
+/* Labels */
+.label {
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    color:var(--muted);
+    margin-bottom:8px;
+    display:block;
+}
+
+/* Inputs */
+input {
+    width:100%;
+    padding:14px;
+    border-radius:var(--r-sm);
+    border:1px solid var(--border);
+    background:#fafafa;
+    font-size:15px;
+    margin-bottom:10px;
+}
+input:focus {
+    border-color:var(--accent);
+    outline:none;
+}
+
+/* Buttons */
+.btn {
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:var(--r-md);
+    background:var(--accent);
+    color:#fff;
+    font-size:15px;
+    font-weight:500;
+    cursor:pointer;
+}
+
+/* Services */
+.service-row {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px;
+    border-bottom:1px solid var(--border);
+}
+.service-row:last-child { border-bottom:none; }
+
+.btn-del {
+    width:32px;
+    height:32px;
+    border:none;
+    border-radius:var(--r-sm);
+    background:rgba(224,90,79,.15);
+    color:var(--danger);
+    cursor:pointer;
+}
+
+/* Appointments */
+.appt-card { border-left:3px solid var(--accent); }
+.appt-time { color:var(--accent); font-weight:600; margin-bottom:6px; }
+.client-row { font-weight:500; }
+.info-row { color:#666; font-size:14px; }
+
+/* Modal */
+#custom-modal {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.4);
+    align-items:center;
+    justify-content:center;
+}
+.modal-box {
+    background:var(--card);
+    padding:20px;
+    border-radius:var(--r-md);
+    width:80%;
+    max-width:300px;
+}
+.modal-btns { display:flex; gap:10px; }
+.m-btn {
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:var(--r-sm);
+    cursor:pointer;
+}
+.m-yes { background:var(--danger); color:#fff; }
+.m-no { background:#eee; }
+</style>
 </head>
 <body>
 

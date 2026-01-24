@@ -1,45 +1,120 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root { --bg: #000; --card: #1c1c1e; --accent: #2481cc; --text: #fff; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; padding-bottom: 50px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        .section-label { color: var(--accent); font-size: 11px; text-transform: uppercase; font-weight: bold; margin: 20px 0 10px 4px; letter-spacing: 0.5px; }
-        .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #2c2c2e; }
+<style>
+:root {
+    --bg:#f7f7f6;
+    --card:#ffffff;
+    --border:#e6e6e3;
+    --text:#1f1f1f;
+    --muted:#8f8f8f;
+    --accent:#8fb6a3;
+    --accent-soft:rgba(143,182,163,.15);
+    --r-sm:8px;
+    --r-md:12px;
+}
 
-        /* Выбор питомца */
-        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-        .select-card { background: var(--card); border-radius: 12px; padding: 12px; text-align: center; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
-        .select-card.active { border-color: var(--accent); background: rgba(36, 129, 204, 0.1); }
-        .select-card span { display: block; font-size: 24px; margin-bottom: 4px; }
-        .select-card label { font-size: 12px; font-weight: 500; }
+body {
+    margin:0;
+    padding:16px;
+    font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
 
-        input { width: 100%; background: var(--card); border: none; border-radius: 10px; padding: 14px; color: #fff; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
+/* Card */
+.card {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--r-md);
+    padding:16px;
+    margin-bottom:16px;
+}
 
-        /* Список услуг */
-        .service-item { display: flex; justify-content: space-between; align-items: center; padding: 14px; border-bottom: 1px solid #2c2c2e; cursor: pointer; }
-        .service-item:last-child { border-bottom: none; }
-        .service-item.active { background: rgba(36, 129, 204, 0.1); color: var(--accent); }
-        .service-item b { color: var(--accent); }
+/* Section label */
+.section-label {
+    font-size:11px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:16px 0 8px;
+}
 
-        /* Календарь */
-        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
-        .day { padding: 10px 0; border-radius: 8px; font-size: 14px; cursor: pointer; }
-        .day.active { background: var(--accent); font-weight: bold; }
-        .day.disabled { color: #444; pointer-events: none; }
+/* Pet select */
+.grid-3 {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+}
+.select-card {
+    border:1px solid var(--border);
+    border-radius:var(--r-md);
+    padding:12px;
+    text-align:center;
+    cursor:pointer;
+}
+.select-card.active {
+    border-color:var(--accent);
+    background:var(--accent-soft);
+}
 
-        .time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
-        .time-slot { background: var(--card); padding: 10px 0; text-align: center; border-radius: 8px; font-size: 13px; border: 1px solid #333; cursor: pointer; }
-        .time-slot.active { background: var(--accent); border-color: var(--accent); font-weight: bold; }
+/* Inputs */
+input {
+    width:100%;
+    padding:14px;
+    border-radius:var(--r-sm);
+    border:1px solid var(--border);
+    background:#fafafa;
+    font-size:15px;
+    margin-bottom:10px;
+}
+input:focus {
+    border-color:var(--accent);
+    outline:none;
+}
 
-        .btn-confirm { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 16px; font-weight: bold; font-size: 16px; margin-top: 24px; cursor: pointer; }
-    </style>
+/* Services */
+.service-item {
+    display:flex;
+    justify-content:space-between;
+    padding:14px;
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+}
+.service-item.active {
+    background:var(--accent-soft);
+}
+.service-item:last-child { border-bottom:none; }
+
+/* Calendar */
+.day,.time-slot {
+    padding:10px 0;
+    border-radius:var(--r-sm);
+    text-align:center;
+    cursor:pointer;
+}
+.day.active,.time-slot.active {
+    background:var(--accent);
+    color:#fff;
+}
+.day.disabled { color:#ccc; pointer-events:none; }
+
+/* Button */
+.btn-confirm {
+    width:100%;
+    padding:16px;
+    border:none;
+    border-radius:var(--r-md);
+    background:var(--accent);
+    color:#fff;
+    font-size:16px;
+    font-weight:500;
+}
+</style>
 </head>
 <body>
     <div class="card"><h2 id="studio-name" style="margin:0; font-size: 20px;">Загрузка студии...</h2></div>
