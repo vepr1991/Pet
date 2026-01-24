@@ -43,10 +43,10 @@ async def handle_booking_data(message: types.Message):
         m_id = data.get('master_id')
         dt = f"{data.get('date')} {data.get('time')}"
 
-        # Объединяем тип и породу для отображения в базе
+        # Объединяем тип и породу для красивого вывода в списке мастера
         breed_info = f"{data.get('pet_type', 'Питомец')} ({data.get('breed', 'Не указано')})"
 
-        # 1. Записываем в базу (Убедитесь, что в БД добавлена колонка client_name!)
+        # 1. Записываем в базу
         db.add_appointment(
             user_id=message.from_user.id,
             breed=breed_info,
@@ -54,8 +54,8 @@ async def handle_booking_data(message: types.Message):
             service=data.get('service', 'Груминг'),
             date_time=dt,
             phone=data.get('phone'),
-            master_id=m_id,
-            client_name=client_tg_name  # <--- Важно!
+            master_id=int(m_id),  # Гарантируем, что это число
+            client_name=client_tg_name
         )
 
         # 2. Уведомление мастеру
@@ -63,7 +63,6 @@ async def handle_booking_data(message: types.Message):
             f"🚀 <b>Новая запись!</b>\n\n"
             f"👤 <b>Клиент:</b> {client_tg_name}\n"
             f"🐶 <b>Питомец:</b> {breed_info}\n"
-            f"📛 <b>Кличка:</b> {data.get('pet_name')}\n"
             f"📅 <b>Время:</b> {dt}\n"
             f"📞 <b>Телефон:</b> <code>{data.get('phone')}</code>"
         )
@@ -72,7 +71,7 @@ async def handle_booking_data(message: types.Message):
         # 3. Подтверждение клиенту
         master_info = db.get_master_info(m_id)
         await message.answer(
-            f"✅ <b>Запись в «{master_info['studio_name']}» создана!</b>\n\n"
+            f"✅ <b>Запись в «{master_info['studio_name']}» успешно создана!</b>\n\n"
             f"Мастер свяжется с вами в ближайшее время.",
             parse_mode="HTML",
             reply_markup=kb.get_main_kb(message.from_user.id, ADMIN_ID, for_master=master_info)
