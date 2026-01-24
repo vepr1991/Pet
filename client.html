@@ -3,92 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #1c1c1e; --accent: #2481cc; --text: #ffffff; }
+        :root { --bg: #1c1c1e; --accent: #2481cc; --text: #ffffff; --gray: #2c2c2e; }
         body { font-family: -apple-system, sans-serif; background: #000; color: var(--text); margin: 0; padding: 20px; }
-        .studio-name { font-size: 24px; font-weight: bold; margin-bottom: 5px; color: var(--accent); }
-        .service-card { background: #1c1c1e; border: 1px solid #333; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-book { background: var(--accent); color: white; border: none; border-radius: 10px; padding: 10px 20px; font-weight: bold; cursor: pointer; }
-        #loader { text-align: center; margin-top: 50px; }
-        .price { color: var(--accent); font-weight: bold; font-size: 16px; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .studio-title { color: var(--accent); font-size: 22px; font-weight: bold; margin-bottom: 20px; text-align: center; }
+        .card { background: var(--bg); border-radius: 15px; padding: 15px; margin-bottom: 10px; border: 1px solid #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: 12px; padding: 15px; font-weight: bold; margin-top: 20px; }
+
+        /* Календарь */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 15px; }
+        .day { padding: 10px 5px; text-align: center; background: var(--gray); border-radius: 8px; font-size: 12px; }
+        .day.selected { background: var(--accent); color: white; }
+        .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+        .time-slot { padding: 10px; text-align: center; background: var(--gray); border-radius: 8px; }
+        .time-slot.selected { background: var(--accent); }
     </style>
 </head>
 <body>
-    <div id="main-content" style="display:none;">
-        <div id="master-title" class="studio-name">Студия</div>
-        <p style="color: #888; margin-bottom: 25px;">Выберите услугу для записи:</p>
-        <div id="services-list"></div>
+    <div id="master-name" class="studio-title">Загрузка...</div>
+
+    <div id="step-services" class="step active">
+        <p>1. Выберите услугу:</p>
+        <div id="services-list">Загрузка прайса...</div>
     </div>
-    <div id="loader">🐾 Ищем мастера и услуги...</div>
+
+    <div id="step-datetime" class="step">
+        <p>2. Выберите дату и время:</p>
+        <div id="calendar" class="calendar-grid"></div>
+        <div id="time-slots" class="time-grid"></div>
+        <button class="btn" id="confirm-btn" onclick="finishBooking()" style="display:none;">Подтвердить запись</button>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand();
-
         const _sb = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
+        const mId = new URLSearchParams(window.location.search).get('master');
 
-        const params = new URLSearchParams(window.location.search);
-        const mId = params.get('master');
+        let selectedService = "";
+        let selectedDate = "";
+        let selectedTime = "";
 
         async function init() {
-            if (!mId) {
-                document.getElementById('loader').innerText = "Ошибка: Мастер не указан в ссылке.";
-                return;
-            }
+            if (!mId) return;
+            const { data: m } = await _sb.from('masters').select('studio_name').eq('telegram_id', Number(mId)).single();
+            if (m) document.getElementById('master-name').innerText = m.studio_name;
 
-            try {
-                // ВАЖНО: Используем Number(mId) для соответствия типу в БД
-                const numericId = Number(mId);
+            const { data: srv } = await _sb.from('services').select('*').eq('master_id', Number(mId));
+            const list = document.getElementById('services-list');
+            list.innerHTML = "";
+            srv?.forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `<div><b>${s.name}</b></div><div style="color:var(--accent)">${s.price} ₸</div>`;
+                div.onclick = () => selectService(s.name);
+                list.appendChild(div);
+            });
+        }
 
-                // 1. Загружаем данные о мастере
-                const { data: master, error: mErr } = await _sb.from('masters')
-                    .select('studio_name')
-                    .eq('telegram_id', numericId)
-                    .single();
+        function selectService(name) {
+            selectedService = name;
+            document.getElementById('step-services').classList.remove('active');
+            document.getElementById('step-datetime').classList.add('active');
+            renderCalendar();
+        }
 
-                if (master) {
-                    document.getElementById('master-title').innerText = master.studio_name;
-                }
-
-                // 2. Загружаем услуги мастера
-                const { data: services, error: sErr } = await _sb.from('services')
-                    .select('*')
-                    .eq('master_id', numericId);
-
-                const list = document.getElementById('services-list');
-                list.innerHTML = "";
-
-                if (services && services.length > 0) {
-                    services.forEach(s => {
-                        const div = document.createElement('div');
-                        div.className = 'service-card';
-                        div.innerHTML = `
-                            <div><b>${s.name}</b><br><span class="price">${s.price} ₸</span></div>
-                            <button class="btn-book" onclick="startBooking('${s.name}')">Выбрать</button>
-                        `;
-                        list.appendChild(div);
-                    });
-                } else {
-                    list.innerHTML = "<p style='color:#666; text-align:center;'>У мастера пока нет активных услуг в прайсе.</p>";
-                }
-
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('main-content').style.display = 'block';
-
-            } catch (err) {
-                console.error(err);
-                document.getElementById('loader').innerText = "Ошибка загрузки данных.";
+        function renderCalendar() {
+            const grid = document.getElementById('calendar');
+            grid.innerHTML = "";
+            const today = new Date();
+            for(let i=0; i<7; i++) {
+                let d = new Date(); d.setDate(today.getDate() + i);
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                dayDiv.innerHTML = `${d.getDate()}<br>${d.toLocaleDateString('ru-RU', {weekday: 'short'})}`;
+                dayDiv.onclick = () => {
+                    document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
+                    dayDiv.classList.add('selected');
+                    selectedDate = d.toLocaleDateString('ru-RU');
+                    renderTime();
+                };
+                grid.appendChild(dayDiv);
             }
         }
 
-        function startBooking(serviceName) {
-            // Отправляем данные в бот
+        function renderTime() {
+            const grid = document.getElementById('time-slots');
+            grid.innerHTML = "";
+            const times = ["10:00", "12:00", "14:00", "16:00", "18:00"];
+            times.forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'time-slot';
+                div.innerText = t;
+                div.onclick = () => {
+                    document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    selectedTime = t;
+                    document.getElementById('confirm-btn').style.display = 'block';
+                };
+                grid.appendChild(div);
+            });
+        }
+
+        function finishBooking() {
             tg.sendData(JSON.stringify({
                 action: "book",
-                service: serviceName,
+                service: selectedService,
+                date: selectedDate,
+                time: selectedTime,
                 master_id: mId
             }));
             tg.close();

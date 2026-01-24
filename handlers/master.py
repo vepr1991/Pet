@@ -73,14 +73,15 @@ async def finish_master_registration(message: types.Message, state: FSMContext):
 @router.message(F.text == "🔗 Моя ссылка")
 async def send_personal_link(message: types.Message):
     m_id = message.from_user.id
-    # Ссылку может получить только мастер или админ
     if db.is_master(m_id) or m_id == ADMIN_ID:
         bot_info = await message.bot.get_me()
-        link = f"<code>https://t.me/{bot_info.username}/app?startapp={m_id}</code>"
+        # ИЗМЕНЕНО: теперь ссылка ведет в бота с параметром start
+        # Это заставит бота сработать и показать кнопку записи
+        link = f"<code>https://t.me/{bot_info.username}?start={m_id}</code>"
 
         await message.answer(
-            f"📋 <b>Ваша ссылка для Instagram:</b>\n\n{link}\n\n"
-            f"<i>Клиенты увидят ваш актуальный прайс по этой ссылке.</i>",
+            f"📋 <b>Ваша ссылка для клиентов:</b>\n\n{link}\n\n"
+            f"<i>Отправьте её клиенту. Когда он перейдет по ней, у него появится кнопка записи именно в вашу студию.</i>",
             parse_mode="HTML"
         )
     else:
