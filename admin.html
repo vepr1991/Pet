@@ -1,175 +1,103 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Добавил зеленый цвет для кнопки чата */
+        :root {
+            --bg:#f7f7f6;
+            --card:#ffffff;
+            --border:#e6e6e3;
+            --text:#1f1f1f;
+            --muted:#8f8f8f;
+            --accent:#8fb6a3;
+            --accent-soft:rgba(143,182,163,.15);
+            --danger:#e05a4f;
+            --green: #34c759; /* Цвет сообщений iOS */
+            --green-soft: rgba(52, 199, 89, 0.15);
+            --r-sm:8px;
+            --r-md:12px;
+        }
 
-<style>
-:root {
-    --bg:#f7f7f6;
-    --card:#ffffff;
-    --border:#e6e6e3;
-    --text:#1f1f1f;
-    --muted:#8f8f8f;
-    --accent:#8fb6a3;
-    --accent-soft:rgba(143,182,163,.15);
-    --danger:#e05a4f;
-    --r-sm:8px;
-    --r-md:12px;
-}
+        body {
+            margin:0;
+            padding:16px;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+            background:var(--bg);
+            color:var(--text);
+        }
 
-body {
-    margin:0;
-    padding:16px;
-    font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
-    background:var(--bg);
-    color:var(--text);
-}
+        /* Header */
+        .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        .header h2 { margin:0; font-size:20px; font-weight:600; }
 
-/* Header */
-.header {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:20px;
-}
-.header h2 {
-    margin:0;
-    font-size:20px;
-    font-weight:600;
-}
-.header small { color:var(--muted); }
+        /* Tabs */
+        .tab-menu { display:flex; gap:6px; background:#ededeb; padding:4px; border-radius:var(--r-md); margin-bottom:20px; }
+        .tab { flex:1; text-align:center; padding:10px; font-size:14px; color:#666; border-radius:var(--r-sm); cursor:pointer; }
+        .tab.active { background:var(--card); color:var(--text); font-weight:500; }
 
-/* Tabs */
-.tab-menu {
-    display:flex;
-    gap:6px;
-    background:#ededeb;
-    padding:4px;
-    border-radius:var(--r-md);
-    margin-bottom:20px;
-}
-.tab {
-    flex:1;
-    text-align:center;
-    padding:10px;
-    font-size:14px;
-    color:#666;
-    border-radius:var(--r-sm);
-    cursor:pointer;
-}
-.tab.active {
-    background:var(--card);
-    color:var(--text);
-    font-weight:500;
-}
+        /* Sections */
+        .section { display:none; }
+        .section.active { display:block; }
 
-/* Sections */
-.section { display:none; }
-.section.active { display:block; }
+        /* Cards */
+        .card { background:var(--card); border:1px solid var(--border); border-radius:var(--r-md); padding:16px; margin-bottom:12px; }
 
-/* Cards */
-.card {
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:var(--r-md);
-    padding:16px;
-    margin-bottom:12px;
-}
+        /* Labels */
+        .label { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:8px; display:block; }
 
-/* Labels */
-.label {
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:.5px;
-    color:var(--muted);
-    margin-bottom:8px;
-    display:block;
-}
+        /* Inputs */
+        input { width:100%; padding:14px; border-radius:var(--r-sm); border:1px solid var(--border); background:#fafafa; font-size:15px; margin-bottom:10px; box-sizing: border-box; }
+        input:focus { border-color:var(--accent); outline:none; }
 
-/* Inputs */
-input {
-    width:100%;
-    padding:14px;
-    border-radius:var(--r-sm);
-    border:1px solid var(--border);
-    background:#fafafa;
-    font-size:15px;
-    margin-bottom:10px;
-}
-input:focus {
-    border-color:var(--accent);
-    outline:none;
-}
+        /* Buttons (General) */
+        .btn { width:100%; padding:14px; border:none; border-radius:var(--r-md); background:var(--accent); color:#fff; font-size:15px; font-weight:500; cursor:pointer; }
 
-/* Buttons */
-.btn {
-    width:100%;
-    padding:14px;
-    border:none;
-    border-radius:var(--r-md);
-    background:var(--accent);
-    color:#fff;
-    font-size:15px;
-    font-weight:500;
-    cursor:pointer;
-}
+        /* Services List */
+        .service-row { display:flex; justify-content:space-between; align-items:center; padding:14px; border-bottom:1px solid var(--border); }
+        .service-row:last-child { border-bottom:none; }
+        .btn-del { width:32px; height:32px; border:none; border-radius:var(--r-sm); background:rgba(224,90,79,.15); color:var(--danger); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; }
 
-/* Services */
-.service-row {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:14px;
-    border-bottom:1px solid var(--border);
-}
-.service-row:last-child { border-bottom:none; }
+        /* Appointments Card */
+        .appt-card { border-left:3px solid var(--accent); }
+        .appt-time { color:var(--accent); font-weight:600; margin-bottom:6px; }
+        .client-row { font-weight:500; font-size: 16px; margin-bottom: 4px; }
+        .info-row { color:#666; font-size:14px; margin-bottom: 2px; }
 
-.btn-del {
-    width:32px;
-    height:32px;
-    border:none;
-    border-radius:var(--r-sm);
-    background:rgba(224,90,79,.15);
-    color:var(--danger);
-    cursor:pointer;
-}
+        /* --- НОВЫЕ КНОПКИ ДЕЙСТВИЙ (Звонок / Чат) --- */
+        .btns-row { display: flex; gap: 10px; margin-top: 15px; }
+        .action-btn {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: var(--r-sm);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: 0.1s;
+        }
+        /* Стиль кнопки звонка */
+        .btn-call { background: var(--accent-soft); color: #5a7d6e; } /* Чуть темнее акцента для текста */
+        /* Стиль кнопки сообщения */
+        .btn-write { background: var(--green-soft); color: #2da84e; }
 
-/* Appointments */
-.appt-card { border-left:3px solid var(--accent); }
-.appt-time { color:var(--accent); font-weight:600; margin-bottom:6px; }
-.client-row { font-weight:500; }
-.info-row { color:#666; font-size:14px; }
-
-/* Modal */
-#custom-modal {
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.4);
-    align-items:center;
-    justify-content:center;
-}
-.modal-box {
-    background:var(--card);
-    padding:20px;
-    border-radius:var(--r-md);
-    width:80%;
-    max-width:300px;
-}
-.modal-btns { display:flex; gap:10px; }
-.m-btn {
-    flex:1;
-    padding:12px;
-    border:none;
-    border-radius:var(--r-sm);
-    cursor:pointer;
-}
-.m-yes { background:var(--danger); color:#fff; }
-.m-no { background:#eee; }
-</style>
+        /* Modal */
+        #custom-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); align-items:center; justify-content:center; }
+        .modal-box { background:var(--card); padding:20px; border-radius:var(--r-md); width:80%; max-width:300px; text-align:center; }
+        .modal-text { font-size:16px; margin-bottom:20px; color:var(--text); }
+        .modal-btns { display:flex; gap:10px; }
+        .m-btn { flex:1; padding:12px; border:none; border-radius:var(--r-sm); cursor:pointer; font-size:15px; font-weight:500; }
+        .m-yes { background:var(--danger); color:#fff; }
+        .m-no { background:#eee; color:#333; }
+    </style>
 </head>
 <body>
 
@@ -212,29 +140,19 @@ input:focus {
 
     <script>
         const tg = window.Telegram.WebApp;
-        // Твой URL и Ключ Supabase (оставляю как были в твоем проекте)
         const _sb = supabase.createClient('https://uplcrgnxkafcxejwuggx.supabase.co', 'sb_publishable_SDlNlU_Nco34DHqTS0DasA_5jQqyiSF');
-
         const params = new URLSearchParams(window.location.search);
 
-        // --- ГАРАНТИРОВАННОЕ ПОЛУЧЕНИЕ ID ---
-        // 1. Пробуем взять из ссылки
-        // 2. Если нет, берем из данных Telegram
-        // 3. ОБЯЗАТЕЛЬНО приводим к числу Number(), иначе база не найдет записи
         let mId = Number(params.get('master')) || Number(tg.initDataUnsafe.user?.id);
-
-        let serviceToDeleteId = null; // Для хранения ID услуги при удалении
+        let serviceToDeleteId = null;
 
         async function init() {
             tg.ready(); tg.expand();
-
-            // Если ID мастера все еще 0 или NaN, показываем ошибку
             if (!mId) {
-                document.body.innerHTML = "<div style='padding:50px; text-align:center; color:white;'>⚠️ Ошибка: Не удалось определить ID мастера.<br>Зайдите через бота.</div>";
+                document.body.innerHTML = "<div style='padding:50px; text-align:center; color:#888;'>⚠️ Ошибка: ID мастера не определен.<br>Зайдите через бота.</div>";
                 return;
             }
-
-            console.log("Master ID:", mId); // Для отладки
+            console.log("Master ID:", mId);
             await refreshData();
         }
 
@@ -244,36 +162,29 @@ input:focus {
             await loadServices();
         }
 
-        // 1. Загрузка имени студии
         async function loadMaster() {
             const { data } = await _sb.from('masters').select('studio_name').eq('telegram_id', mId).single();
             if (data) document.getElementById('studio-name').innerText = data.studio_name;
         }
 
-        // 2. Загрузка записей (ИСПРАВЛЕННАЯ)
         async function loadAppts() {
             const list = document.getElementById('appts-list');
-            list.innerHTML = '<div style="text-align:center; padding:20px; color:#666">Загрузка...</div>';
+            list.innerHTML = '<div style="text-align:center; padding:20px; color:#888">Загрузка...</div>';
 
-            // Делаем запрос в базу строго по числовому ID
             const { data, error } = await _sb
                 .from('appointments')
                 .select('*')
                 .eq('master_id', mId)
                 .order('id', { ascending: false });
 
-            if (error) {
-                list.innerHTML = `<div style="color:red; text-align:center;">Ошибка БД: ${error.message}</div>`;
-                return;
-            }
+            if (error) { list.innerHTML = `<div style="color:var(--danger); text-align:center;">Ошибка БД</div>`; return; }
 
             if (!data || data.length === 0) {
-                // Выводим ID, по которому искали, чтобы мастер понял, если он зашел не с того аккаунта
                 list.innerHTML = `
-                    <div style="text-align:center; margin-top:40px; color:#666;">
+                    <div style="text-align:center; margin-top:40px; color:#888;">
                         <div style="font-size:40px; margin-bottom:10px;">📭</div>
                         У вас пока нет записей<br>
-                        <small style="opacity:0.5">Ваш ID: ${mId}</small>
+                        <small style="opacity:0.5">ID: ${mId}</small>
                     </div>`;
                 return;
             }
@@ -282,29 +193,32 @@ input:focus {
             data.forEach(a => {
                 const div = document.createElement('div');
                 div.className = 'card appt-card';
-                // Формируем карточку, проверяя наличие данных
                 const clientName = a.client_name ? a.client_name : 'Клиент';
                 const breedInfo = a.breed ? a.breed : 'Питомец';
                 const petName = a.pet_name ? a.pet_name : '';
 
+                // ВАЖНО: Добавил кнопки. user_id берется из базы для ссылки в Telegram
                 div.innerHTML = `
                     <div class="appt-time">📅 ${a.date_time}</div>
                     <div class="client-row">👤 ${clientName}</div>
                     <div class="info-row">🐶 ${breedInfo} ${petName ? `(${petName})` : ''}</div>
                     <div class="info-row">✂️ ${a.service}</div>
-                    <a href="tel:${a.phone}" class="call-btn">📞 ${a.phone}</a>
+
+                    <div class="btns-row">
+                        <a href="tel:${a.phone}" class="action-btn btn-call">📞 Позвонить</a>
+                        <a href="tg://user?id=${a.user_id}" class="action-btn btn-write">💬 Написать</a>
+                    </div>
                 `;
                 list.appendChild(div);
             });
         }
 
-        // 3. Загрузка услуг
         async function loadServices() {
             const list = document.getElementById('services-list');
             const { data } = await _sb.from('services').select('*').eq('master_id', mId).order('id', { ascending: false });
 
             if (!data || data.length === 0) {
-                list.innerHTML = '<div style="padding:20px; text-align:center; color:#666">Прайс пуст</div>';
+                list.innerHTML = '<div style="padding:20px; text-align:center; color:#888">Прайс пуст</div>';
                 return;
             }
 
@@ -337,7 +251,6 @@ input:focus {
             await loadServices();
         }
 
-        // --- ЛОГИКА УДАЛЕНИЯ (Без домена) ---
         function askDelete(id) {
             serviceToDeleteId = id;
             document.getElementById('custom-modal').style.display = 'flex';
@@ -350,7 +263,6 @@ input:focus {
 
         async function confirmDelete() {
             if (serviceToDeleteId) {
-                // Удаляем через API Supabase напрямую
                 await _sb.from('services').delete().eq('id', serviceToDeleteId).eq('master_id', mId);
                 closeModal();
                 await loadServices();
