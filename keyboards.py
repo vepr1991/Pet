@@ -3,16 +3,29 @@ import database as db
 
 def get_main_kb(user_id, admin_id):
     base_url = "https://vepr1991.github.io/Pet"
-    is_master = (user_id == admin_id) or db.is_master(user_id)
+    is_master = db.is_master(user_id) # Проверка в таблице masters
+    is_admin = (user_id == admin_id)
 
     buttons = []
 
-    if is_master:
-        # У МАСТЕРА только панель управления и работа с базой
-        buttons.append([KeyboardButton(text="⚙️ Панель управления", web_app=WebAppInfo(url=f"{base_url}/admin.html"))])
-        buttons.append([KeyboardButton(text="📊 Посмотреть записи (Админ)"), KeyboardButton(text="🔗 Моя ссылка")])
+    # 1. ШАГ: ВЫ (ГЛОБАЛЬНЫЙ АДМИН)
+    if is_admin:
+        # Убираем "Тест записи", оставляем только управление и проверку
+        buttons.append([KeyboardButton(text="📊 Посмотреть записи (Все)")])
+        buttons.append([KeyboardButton(text="⚙️ Админ-панель", web_app=WebAppInfo(url=f"{base_url}/admin.html"))])
+        buttons.append([KeyboardButton(text="🔗 Моя ссылка")])
+
+    # 3. ШАГ: ЗАРЕГИСТРИРОВАННЫЙ МАСТЕР (уже есть в базе)
+    elif is_master:
+        buttons.append([KeyboardButton(text="⚙️ Панель мастера", web_app=WebAppInfo(url=f"{base_url}/admin.html"))])
+        buttons.append([
+            KeyboardButton(text="🔗 Моя ссылка"),
+            KeyboardButton(text="✂️ Редактировать услуги", web_app=WebAppInfo(url=f"{base_url}/admin.html#services"))
+        ])
+
+    # 2. ШАГ: МАСТЕР (НЕТ В БАЗЕ)
     else:
-        # У КЛИЕНТА только одна понятная кнопка
-        buttons.append([KeyboardButton(text="Записаться на груминг ✂️", web_app=WebAppInfo(url=f"{base_url}/index.html"))])
+        # Убрали кнопку "Записаться на груминг", оставили только регистрацию
+        buttons.append([KeyboardButton(text="🤝 Стать партнером (Регистрация мастера)")])
 
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
