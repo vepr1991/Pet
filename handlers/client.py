@@ -11,7 +11,7 @@ router = Router()
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject):
     u_id = message.from_user.id
-    args = command.args  # ID мастера из ссылки t.me/bot?start=ID
+    args = command.args
 
     master_info = None
     if args and args.isdigit():
@@ -38,16 +38,19 @@ async def handle_booking_data(message: types.Message):
     """Принимаем данные записи и уведомляем мастера"""
     try:
         data = json.loads(message.web_app_data.data)
-        client_tg_name = message.from_user.full_name  # Имя из Телеграм
+        client_tg_name = message.from_user.full_name
 
-        client_username = data.get('username')
+        # --- ИСПРАВЛЕНИЕ: Берем username ---
+        # Сначала пробуем взять из профиля отправителя (это надежнее всего)
+        # Если там пусто, берем то, что прислал JS
+        client_username = message.from_user.username or data.get('username') or ""
+
         m_id = data.get('master_id')
         dt = f"{data.get('date')} {data.get('time')}"
 
-        # Объединяем тип и породу для красивого вывода в списке мастера
         breed_info = f"{data.get('pet_type', 'Питомец')} ({data.get('breed', 'Не указано')})"
 
-        # 1. Записываем в базу
+        # 1. Записываем в базу (Теперь передаем username!)
         db.add_appointment(
             user_id=message.from_user.id,
             breed=breed_info,
@@ -55,15 +58,17 @@ async def handle_booking_data(message: types.Message):
             service=data.get('service', 'Груминг'),
             date_time=dt,
             phone=data.get('phone'),
-            master_id=int(m_id),  # Гарантируем, что это число
+            master_id=int(m_id),
             client_name=client_tg_name,
-            username = client_username
+            username=client_username  # <--- ВОТ ЗДЕСЬ БЫЛО ПУСТО
         )
 
         # 2. Уведомление мастеру
+        user_link = f"@{client_username}" if client_username else "скрыт"
+
         notification = (
             f"🚀 <b>Новая запись!</b>\n\n"
-            f"👤 <b>Клиент:</b> {client_tg_name}\n"
+            f"👤 <b>Клиент:</b> {client_tg_name} ({user_link})\n"
             f"🐶 <b>Питомец:</b> {breed_info}\n"
             f"📅 <b>Время:</b> {dt}\n"
             f"📞 <b>Телефон:</b> <code>{data.get('phone')}</code>"
