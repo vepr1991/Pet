@@ -6,6 +6,26 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Дополнительные стили для заголовков дат */
+        .date-header {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--muted);
+            margin: 20px 0 8px 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .date-header:first-child { margin-top: 5px; }
+
+        /* Стиль для прошедших записей */
+        .appt-card.past {
+            opacity: 0.6;
+            border-left-color: #ccc;
+            background: #f9f9f9;
+        }
+        .appt-card.past .appt-time { color: #888; }
+    </style>
 </head>
 <body>
 
@@ -62,17 +82,40 @@
             if (data) document.getElementById('studio-name').innerText = data.studio_name;
         }
 
+        // --- ГЛАВНОЕ ОБНОВЛЕНИЕ: СОРТИРОВКА И ГРУППИРОВКА ---
         async function loadAppts() {
             const list = document.getElementById('appts-list');
             list.innerHTML = '<div style="text-align:center; padding:20px; color:#999">Загрузка...</div>';
-            const { data } = await _sb.from('appointments').select('*').eq('master_id', mId).order('id', { ascending: false });
 
-            if (!data || data.length === 0) { list.innerHTML = `<div style="text-align:center; margin-top:40px; color:#999;">📭 Пока нет записей</div>`; return; }
+            // 1. Берем ВСЕ записи
+            const { data } = await _sb.from('appointments').select('*').eq('master_id', mId);
+
+            if (!data || data.length === 0) {
+                list.innerHTML = `<div style="text-align:center; margin-top:40px; color:#999;">📭 Пока нет записей</div>`;
+                return;
+            }
+
+            // 2. Парсим даты и сортируем в JS (так как в БД у нас строки)
+            data.forEach(item => {
+                // Превращаем "25.01.2026 14:00" -> Date Object
+                const [dPart, tPart] = item.date_time.split(' ');
+                const [day, month, year] = dPart.split('.');
+                item._jsDate = new Date(`${year}-${month}-${day}T${tPart}:00`);
+            });
+
+            // Сортировка: Сначала новые, потом старые (но мы можем разделить их)
+            // Давайте сделаем так: Будущие записи сверху (по возрастанию), Прошедшие снизу
+            const now = new Date();
+            const future = data.filter(i => i._jsDate >= now).sort((a,b) => a._jsDate - b._jsDate);
+            const past = data.filter(i => i._jsDate < now).sort((a,b) => b._jsDate - a._jsDate); // Прошлые по убыванию (недавние сверху)
 
             list.innerHTML = '';
-            data.forEach(a => {
+
+            // Функция рендера карточки
+            const renderItem = (a, isPast) => {
                 const div = document.createElement('div');
-                div.className = 'card appt-card';
+                div.className = `card appt-card ${isPast ? 'past' : ''}`;
+
                 const client = a.client_name || 'Клиент';
                 const breed = a.breed || 'Питомец';
                 const petName = a.pet_name ? `(${a.pet_name})` : '';
@@ -81,16 +124,65 @@
                 const username = a.username || '';
 
                 div.innerHTML = `
-                    <div class="appt-time">📅 ${a.date_time}</div>
+                    <div class="appt-time">
+                        ${isPast ? '🏁 Завершен:' : '📅'} ${a.date_time}
+                    </div>
                     <div class="client-name">👤 ${client}</div>
                     <div class="info-row">🐶 ${breed} ${petName}</div>
                     <div class="info-row">✂️ ${a.service}</div>
+                    ${!isPast ? `
                     <div class="copy-phone-btn" onclick="copyPhone('${phone}')">📞 ${phone} <span class="copy-icon">📋</span></div>
                     <div onclick="openChat('${userId}', '${username}')" class="btn-write">💬 Написать в Telegram</div>
+                    ` : '<div class="info-row" style="margin-top:5px; font-style:italic">Запись в архиве</div>'}
                 `;
-                list.appendChild(div);
-            });
+                return div;
+            };
+
+            // 3. Рендер АКТУАЛЬНЫХ (с группировкой по датам)
+            if (future.length > 0) {
+                let lastDate = '';
+                future.forEach(a => {
+                    // Группировка: если дата сменилась, рисуем заголовок
+                    const dateKey = a.date_time.split(' ')[0]; // "25.01.2026"
+                    if (dateKey !== lastDate) {
+                        const header = document.createElement('div');
+                        header.className = 'date-header';
+
+                        // Красивая дата (Сегодня / Завтра / Дата)
+                        const today = now.toLocaleDateString('ru-RU');
+                        const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+                        const tomStr = tomorrow.toLocaleDateString('ru-RU');
+
+                        // Парсим дату записи для сравнения
+                        const recDate = a._jsDate.toLocaleDateString('ru-RU');
+
+                        if (recDate === today) header.innerText = "🔥 Сегодня";
+                        else if (recDate === tomStr) header.innerText = "🌅 Завтра";
+                        else header.innerText = `📅 ${recDate}`;
+
+                        list.appendChild(header);
+                        lastDate = dateKey;
+                    }
+                    list.appendChild(renderItem(a, false));
+                });
+            } else {
+                list.innerHTML += `<div style="text-align:center; padding:20px; color:#aaa">Нет актуальных записей</div>`;
+            }
+
+            // 4. Рендер ПРОШЕДШИХ (Архив)
+            if (past.length > 0) {
+                const header = document.createElement('div');
+                header.className = 'date-header';
+                header.style.marginTop = "30px";
+                header.innerText = "🗄 Архив (Прошедшие)";
+                list.appendChild(header);
+
+                past.forEach(a => {
+                    list.appendChild(renderItem(a, true));
+                });
+            }
         }
+        // ---------------------------------------------------------
 
         function copyPhone(phone) {
             if (!phone || phone === 'Нет номера') return;
