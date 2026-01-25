@@ -18,24 +18,18 @@
             const startParam = tg.initDataUnsafe.start_param;
             const userId = tg.initDataUnsafe.user?.id;
 
-            // 1. Если в ссылке уже есть ID или он пришел через startapp (это КЛИЕНТ)
             const mId = masterFromUrl || startParam;
 
             if (mId) {
-                console.log("Маршрут: Клиент -> Мастер", mId);
                 window.location.replace(`client.html?master=${mId}`);
             }
-            // 2. Если параметров нет (это МАСТЕР, зашедший через кнопку бота)
             else if (userId) {
-                console.log("Маршрут: Мастер/Админ", userId);
                 window.location.replace(`admin.html?master=${userId}`);
             }
             else {
                 document.getElementById('loader').innerText = "Ошибка: ID не найден. Перезапустите бота.";
             }
         }
-
-        // Даем Telegram 250мс на инициализацию данных
         setTimeout(route, 250);
     </script>
 </body>

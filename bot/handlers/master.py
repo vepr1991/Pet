@@ -1,11 +1,16 @@
-import json
 from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-import database as db
-import keyboards as kb
-from config import ADMIN_ID
+
+# --- ИСПРАВЛЕННЫЕ ИМПОРТЫ ---
+from bot.database import requests as db  # Импортируем запросы как db
+# ВНИМАНИЕ: Проверьте, что файл называется именно keyboards.py,
+# если мы раньше называли его main_kb.py, то поправьте импорт ниже на main_kb
+from bot.keyboards import keyboards as kb
+from config import ADMIN_ID  # Импорт админа из корня
+
+# -----------------------------
 
 router = Router()
 
@@ -48,11 +53,10 @@ async def finish_master_registration(message: types.Message, state: FSMContext):
     # 1. Сохраняем мастера в базу данных Supabase
     db.register_new_master(m_id, studio_name)
 
-    # 2. Генерируем правильную ссылку (Deep Link)
+    # 2. Генерируем правильную ссылку (на старт бота)
     bot_info = await message.bot.get_me()
-
-    # ИСПРАВЛЕНИЕ ЗДЕСЬ: Ссылка теперь ведет на старт бота, а не сразу в приложение
-    personal_link = f"<code>https://t.me/{bot_info.username}?start={m_id}</code>"
+    # ИЗМЕНЕНИЕ: Убрали теги <code>, теперь ссылка кликабельная
+    personal_link = f"https://t.me/{bot_info.username}?start={m_id}"
 
     # 3. Отправляем успех и ОБНОВЛЯЕМ меню на "Мастерское"
     await message.answer(
@@ -61,7 +65,7 @@ async def finish_master_registration(message: types.Message, state: FSMContext):
         f"Теперь вы можете добавить свои услуги в Панели мастера.\n"
         f"<i>Отправьте эту ссылку клиентам или добавьте в Instagram.</i>",
         parse_mode="HTML",
-        reply_markup=kb.get_main_kb(m_id, ADMIN_ID)  # Переключаем клавиатуру на мастерскую
+        reply_markup=kb.get_main_kb(m_id, ADMIN_ID)  # Переключаем клавиатуру
     )
 
     # Уведомление для тебя (Админа)
@@ -80,10 +84,12 @@ async def finish_master_registration(message: types.Message, state: FSMContext):
 @router.message(F.text == "🔗 Моя ссылка")
 async def send_personal_link(message: types.Message):
     m_id = message.from_user.id
-    if db.is_master(m_id) or m_id == ADMIN_ID:
+
+    # Вот здесь раньше была ошибка, теперь db определен
+    if db.is_master(m_id) or str(m_id) == str(ADMIN_ID or 0):
         bot_info = await message.bot.get_me()
-        # Ссылка, которая активирует бота и показывает меню записи
-        link = f"<code>https://t.me/{bot_info.username}?start={m_id}</code>"
+        # ИЗМЕНЕНИЕ: Убрали теги <code>, теперь ссылка кликабельная
+        link = f"https://t.me/{bot_info.username}?start={m_id}"
 
         await message.answer(
             f"📋 <b>Ваша ссылка для клиентов:</b>\n\n{link}\n\n"
@@ -97,7 +103,8 @@ async def send_personal_link(message: types.Message):
 # Обработка нажатия на "Посмотреть записи" (Админский функционал)
 @router.message(F.text == "📊 Посмотреть записи (Все)")
 async def view_all_records(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
+    # Приводим к int, чтобы сравнение работало корректно
+    if str(message.from_user.id) == str(ADMIN_ID):
         await message.answer("🔍 Функция выгрузки всех записей доступна в админ-панели (Web App).")
     else:
         await message.answer("⛔ У вас нет прав для просмотра общей статистики.")

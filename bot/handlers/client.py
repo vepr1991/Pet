@@ -1,8 +1,8 @@
 import json
 from aiogram import Router, types, F
 from aiogram.filters import Command, CommandObject
-import database as db
-import keyboards as kb
+from bot.database import requests as db
+from bot.keyboards import keyboards as kb
 from config import ADMIN_ID
 
 router = Router()
@@ -70,7 +70,9 @@ async def handle_booking_data(message: types.Message):
             f"🚀 <b>Новая запись!</b>\n\n"
             f"👤 <b>Клиент:</b> {client_tg_name} ({user_link})\n"
             f"🐶 <b>Питомец:</b> {breed_info}\n"
+            f"📛 <b>Кличка:</b> {data.get('pet_name')}\n"
             f"📅 <b>Время:</b> {dt}\n"
+            f"✂️ <b>Услуга:</b> {data.get('service')}\n"
             f"📞 <b>Телефон:</b> <code>{data.get('phone')}</code>"
         )
         await message.bot.send_message(int(m_id), notification, parse_mode="HTML")

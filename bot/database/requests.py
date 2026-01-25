@@ -1,12 +1,8 @@
-import os
-from supabase import create_client, Client
-from dotenv import load_dotenv
+# bot/database/requests.py
 
-load_dotenv()
-
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+# Импортируем уже созданного клиента из соседнего файла core.py
+# Точка перед core означает "из этой же папки"
+from .core import supabase
 
 
 def init_db():
@@ -17,7 +13,6 @@ def init_db():
         print(f"❌ Ошибка Supabase: {e}")
 
 
-# --- ИСПРАВЛЕНИЕ: Добавлен аргумент username ---
 def add_appointment(user_id, breed, pet_name, service, date_time, phone, master_id, client_name, username=None):
     """Добавляет новую запись в таблицу appointments"""
     try:
@@ -30,12 +25,29 @@ def add_appointment(user_id, breed, pet_name, service, date_time, phone, master_
             "phone": phone,
             "master_id": int(master_id),
             "client_name": client_name,
-            "username": username  # <--- ВАЖНО: Добавили это поле
+            "username": username
         }
         return supabase.table("appointments").insert(data).execute()
     except Exception as e:
         print(f"❌ Ошибка add_appointment: {e}")
         return None
+
+
+def check_availability(master_id, date_time_str):
+    """Проверяет, свободен ли слот. (Важная функция для бронирования)"""
+    try:
+        # Ищем записи с таким же master_id и date_time
+        res = supabase.table("appointments") \
+            .select("id") \
+            .eq("master_id", int(master_id)) \
+            .eq("date_time", date_time_str) \
+            .execute()
+
+        # Если список пуст (len == 0), значит слот свободен
+        return len(res.data) == 0
+    except Exception as e:
+        print(f"❌ Ошибка проверки слота: {e}")
+        return False  # На всякий случай блокируем, если ошибка
 
 
 def get_master_info(master_id):
@@ -62,7 +74,6 @@ def register_new_master(telegram_id, studio_name):
         return None
 
 
-# Функции для мастера (чтобы работала админка)
 def get_appointments_by_master(master_id, limit=10):
     try:
         res = supabase.table("appointments") \

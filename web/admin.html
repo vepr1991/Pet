@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="header">
+        <div><div style="font-size:12px; color:#888;">Кабинет мастера</div><h2 id="studio-name">Загрузка...</h2></div>
+        <button onclick="refreshData()" style="background:none; border:none; font-size:22px;">🔄</button>
+    </div>
+
+    <div class="tab-menu">
+        <div class="tab active" onclick="showTab('tab-appts', this)">Записи</div>
+        <div class="tab" onclick="showTab('tab-services', this)">Услуги</div>
+    </div>
+
+    <div id="tab-appts" class="section active">
+        <div id="appts-list"></div>
+    </div>
+
+    <div id="tab-services" class="section">
+        <div class="card">
+            <span class="section-label">Новая услуга</span>
+            <input type="text" id="srv-name" placeholder="Название">
+            <input type="number" id="srv-price" placeholder="Цена (₸)">
+            <button class="btn" onclick="addService()">Добавить</button>
+        </div>
+        <div id="services-list" class="card"></div>
+    </div>
+
+    <div id="custom-modal">
+        <div class="modal-box">
+            <div style="font-size:18px; font-weight:600; margin-bottom:10px;">Удалить услугу?</div>
+            <div class="modal-btns">
+                <button class="m-btn m-yes" onclick="confirmDelete()">Удалить</button>
+                <button class="m-btn m-no" onclick="closeModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        let mId = Number(params.get('master')) || Number(tg.initDataUnsafe.user?.id);
+        let serviceToDeleteId = null;
+
+        async function init() {
+            if (!mId) { document.body.innerHTML = "<div style='padding:50px; text-align:center;'>⚠️ ID мастера не найден.</div>"; return; }
+            await refreshData();
+        }
+
+        async function refreshData() { await loadMaster(); await loadAppts(); await loadServices(); }
+
+        async function loadMaster() {
+            const { data } = await _sb.from('masters').select('studio_name').eq('telegram_id', mId).single();
+            if (data) document.getElementById('studio-name').innerText = data.studio_name;
+        }
+
+        async function loadAppts() {
+            const list = document.getElementById('appts-list');
+            list.innerHTML = '<div style="text-align:center; padding:20px; color:#999">Загрузка...</div>';
+
+            const { data, error } = await _sb.from('appointments').select('*').eq('master_id', mId);
+
+            if (error) {
+                console.error("Ошибка Supabase:", error);
+                list.innerHTML = `<div style="text-align:center; color:red">Ошибка загрузки</div>`;
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                list.innerHTML = `<div style="text-align:center; margin-top:40px; color:#999;">📭 Пока нет записей</div>`;
+                return;
+            }
+
+            // --- ИСПРАВЛЕНИЕ: Надежный парсинг даты для всех устройств ---
+            data.forEach(item => {
+                try {
+                    // Разбиваем строку "27.01.2026 9:00" или "27.01.2026 09:00"
+                    const [dPart, tPart] = item.date_time.split(' ');
+                    const [dayStr, monthStr, yearStr] = dPart.split('.');
+                    const [hourStr, minStr] = tPart.split(':');
+
+                    // Создаем дату через числа: new Date(year, monthIndex, day, hours, minutes)
+                    item._jsDate = new Date(
+                        Number(yearStr),
+                        Number(monthStr) - 1, // Месяцы в JS: 0=Январь
+                        Number(dayStr),
+                        Number(hourStr),
+                        Number(minStr)
+                    );
+                } catch (e) {
+                    console.error("Ошибка даты:", item.date_time, e);
+                    item._jsDate = new Date(0); // Чтобы не ломать сортировку
+                }
+            });
+
+            const now = new Date();
+            // Сортируем: Будущие по возрастанию, Прошлые по убыванию (сначала недавние)
+            const future = data.filter(i => i._jsDate >= now).sort((a,b) => a._jsDate - b._jsDate);
+            const past = data.filter(i => i._jsDate < now).sort((a,b) => b._jsDate - a._jsDate);
+
+            list.innerHTML = '';
+
+            const renderItem = (a, isPast) => {
+                const div = document.createElement('div');
+                div.className = `card appt-card ${isPast ? 'past' : ''}`;
+
+                const client = a.client_name || 'Клиент';
+                const breed = a.breed || 'Питомец';
+                const petName = a.pet_name ? `(${a.pet_name})` : '';
+                const phone = a.phone || 'Нет номера';
+
+                const userId = a.user_id ? String(a.user_id) : '';
+                const username = a.username ? String(a.username) : '';
+
+                div.innerHTML = `
+                    <div class="appt-time">
+                        ${isPast ? '🏁 Завершен:' : '📅'} ${a.date_time}
+                    </div>
+                    <div class="client-name">👤 ${client}</div>
+                    <div class="info-row">🐶 ${breed} ${petName}</div>
+                    <div class="info-row">✂️ ${a.service}</div>
+                    ${!isPast ? `
+                    <div class="copy-phone-btn" onclick="copyPhone('${phone}')">📞 ${phone} <span class="copy-icon">📋</span></div>
+                    <div onclick="openChat('${userId}', '${username}')" class="btn-write">💬 Написать в Telegram</div>
+                    ` : '<div class="info-row" style="margin-top:5px; font-style:italic">Запись в архиве</div>'}
+                `;
+                return div;
+            };
+
+            // 1. Рендер АКТУАЛЬНЫХ ЗАПИСЕЙ
+            if (future.length > 0) {
+                let lastDate = '';
+                future.forEach(a => {
+                    const dateKey = a.date_time.split(' ')[0];
+                    if (dateKey !== lastDate) {
+                        const header = document.createElement('div');
+                        header.className = 'date-header';
+
+                        const today = now.toLocaleDateString('ru-RU');
+                        const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+                        const tomStr = tomorrow.toLocaleDateString('ru-RU');
+                        const recDate = a._jsDate.toLocaleDateString('ru-RU');
+
+                        if (recDate === today) header.innerText = "🔥 Сегодня";
+                        else if (recDate === tomStr) header.innerText = "🌅 Завтра";
+                        else header.innerText = `📅 ${recDate}`;
+
+                        list.appendChild(header);
+                        lastDate = dateKey;
+                    }
+                    list.appendChild(renderItem(a, false));
+                });
+            } else {
+                list.innerHTML += `<div style="text-align:center; padding:20px; color:#aaa">Нет актуальных записей</div>`;
+            }
+
+            // 2. Рендер АРХИВА (Выпадающий список)
+            if (past.length > 0) {
+                const archiveContainer = document.createElement('div');
+                archiveContainer.className = 'archive-container';
+
+                // Кнопка открытия
+                const btn = document.createElement('div');
+                btn.className = 'archive-btn';
+                btn.onclick = function() {
+                    this.classList.toggle('open');
+                    const content = this.nextElementSibling;
+                    content.classList.toggle('show');
+                };
+                btn.innerHTML = `<span>🗄 Архив (${past.length})</span> <span class="archive-arrow">▼</span>`;
+
+                // Скрытый список
+                const arcList = document.createElement('div');
+                arcList.className = 'archive-list';
+
+                past.forEach(a => {
+                    arcList.appendChild(renderItem(a, true));
+                });
+
+                archiveContainer.appendChild(btn);
+                archiveContainer.appendChild(arcList);
+                list.appendChild(archiveContainer);
+            }
+        }
+
+        function copyPhone(phone) {
+            if (!phone || phone === 'Нет номера') return;
+            try { tg.HapticFeedback.impactOccurred('light'); } catch(e){}
+            navigator.clipboard.writeText(phone).then(() => { tg.showAlert("Номер скопирован: " + phone); })
+            .catch(err => { tg.showAlert("Ошибка копирования"); });
+        }
+
+        function openChat(userId, username) {
+            try { tg.HapticFeedback.impactOccurred('light'); } catch(e){}
+
+            if (username && username !== '' && username !== 'null' && username !== 'undefined') {
+                const cleanUsername = username.replace('@', '');
+                tg.openTelegramLink(`https://t.me/${cleanUsername}`);
+                return;
+            }
+            if (userId && userId !== '' && userId !== 'null') {
+                tg.openTelegramLink(`tg://user?id=${userId}`);
+            } else {
+                tg.showAlert("Не удалось открыть чат. У клиента скрыт профиль.");
+            }
+        }
+
+        async function loadServices() {
+            const list = document.getElementById('services-list');
+            const { data } = await _sb.from('services').select('*').eq('master_id', mId).order('id', { ascending: false });
+            if (!data || data.length === 0) { list.innerHTML = '<div style="padding:20px; text-align:center; color:#999">Список пуст</div>'; return; }
+            list.innerHTML = '';
+            data.forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'service-row';
+                div.innerHTML = `<div><div style="font-size:16px; margin-bottom:2px;">${s.name}</div><div style="color:var(--accent); font-weight:600;">${s.price} ₸</div></div><button class="btn-del" onclick="askDelete(${s.id})">✕</button>`;
+                list.appendChild(div);
+            });
+        }
+
+        async function addService() {
+            const name = document.getElementById('srv-name').value;
+            const price = document.getElementById('srv-price').value;
+            if (!name || !price) return tg.showAlert("Заполните все поля");
+            await _sb.from('services').insert([{ master_id: mId, name: name, price: Number(price) }]);
+            document.getElementById('srv-name').value = ''; document.getElementById('srv-price').value = '';
+            await loadServices();
+        }
+
+        function askDelete(id) { serviceToDeleteId = id; document.getElementById('custom-modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('custom-modal').style.display = 'none'; serviceToDeleteId = null; }
+        async function confirmDelete() { if (serviceToDeleteId) { await _sb.from('services').delete().eq('id', serviceToDeleteId).eq('master_id', mId); closeModal(); await loadServices(); } }
+
+        function showTab(id, el) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            el.classList.add('active');
+        }
+
+        init();
+    </script>
+</body>
+</html>
