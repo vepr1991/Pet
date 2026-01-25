@@ -2,7 +2,7 @@
 name: Deploy static content to Pages
 
 on:
-  # Срабатывает при пуше в main ИЛИ в dev
+  # Runs on pushes targeting the default branch OR dev
   push:
     branches: ["main", "dev"]
 
@@ -37,8 +37,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # 👇 ВАЖНО: Мы публикуем только папку web как корень сайта
-          # Это решает проблему с путями и 404 ошибкой
+          # 👇 САМОЕ ВАЖНОЕ ИСПРАВЛЕНИЕ ЗДЕСЬ
+          # Мы публикуем только содержимое папки web
           path: './web'
 
       - name: Deploy to GitHub Pages
