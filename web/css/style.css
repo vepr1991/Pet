@@ -70,12 +70,12 @@ input:focus {
     box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-/* --- Tabs (ВЕРНУЛ ЛОГИКУ СКРЫТИЯ) --- */
+/* --- Tabs --- */
 .tab-menu { display: flex; background: #E5E5EA; padding: 3px; border-radius: 12px; margin-bottom: 24px; }
 .tab { flex: 1; text-align: center; padding: 8px; font-size: 13px; font-weight: 600; color: #636366; border-radius: 9px; cursor: pointer; transition: var(--transition); }
 .tab.active { background: #fff; color: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
 
-/* Вот эти классы потерялись в прошлый раз: */
+/* Логика переключения вкладок */
 .section { display: none; }
 .section.active { display: block; animation: fadeIn 0.3s ease; }
 
@@ -166,6 +166,54 @@ input:focus {
 .time-slot.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2); }
 .time-slot.busy { background: #F2F2F7; color: #C7C7CC; pointer-events: none; border-color: transparent; }
 .time-slot.past { background: #F9F9F9; color: #E5E5EA; pointer-events: none; border-color: transparent; }
+
+/* --- Archive Accordion --- */
+.archive-container {
+    margin-top: 24px;
+}
+
+.archive-btn {
+    background: #fff;
+    padding: 16px;
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text);
+    transition: background 0.2s;
+}
+
+.archive-btn:active {
+    background: #F2F2F7;
+}
+
+.archive-arrow {
+    font-size: 12px;
+    color: var(--muted);
+    transition: transform 0.3s ease;
+}
+
+.archive-btn.open .archive-arrow {
+    transform: rotate(180deg);
+}
+
+.archive-list {
+    display: none;
+    margin-top: 12px;
+    animation: slideDown 0.3s ease;
+}
+
+.archive-list.show {
+    display: block;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 /* --- Modal --- */
 #custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 999; }

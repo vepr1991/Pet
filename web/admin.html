@@ -66,20 +66,43 @@
             const list = document.getElementById('appts-list');
             list.innerHTML = '<div style="text-align:center; padding:20px; color:#999">Загрузка...</div>';
 
-            const { data } = await _sb.from('appointments').select('*').eq('master_id', mId);
+            const { data, error } = await _sb.from('appointments').select('*').eq('master_id', mId);
+
+            if (error) {
+                console.error("Ошибка Supabase:", error);
+                list.innerHTML = `<div style="text-align:center; color:red">Ошибка загрузки</div>`;
+                return;
+            }
 
             if (!data || data.length === 0) {
                 list.innerHTML = `<div style="text-align:center; margin-top:40px; color:#999;">📭 Пока нет записей</div>`;
                 return;
             }
 
+            // --- ИСПРАВЛЕНИЕ: Надежный парсинг даты для всех устройств ---
             data.forEach(item => {
-                const [dPart, tPart] = item.date_time.split(' ');
-                const [day, month, year] = dPart.split('.');
-                item._jsDate = new Date(`${year}-${month}-${day}T${tPart}:00`);
+                try {
+                    // Разбиваем строку "27.01.2026 9:00" или "27.01.2026 09:00"
+                    const [dPart, tPart] = item.date_time.split(' ');
+                    const [dayStr, monthStr, yearStr] = dPart.split('.');
+                    const [hourStr, minStr] = tPart.split(':');
+
+                    // Создаем дату через числа: new Date(year, monthIndex, day, hours, minutes)
+                    item._jsDate = new Date(
+                        Number(yearStr),
+                        Number(monthStr) - 1, // Месяцы в JS: 0=Январь
+                        Number(dayStr),
+                        Number(hourStr),
+                        Number(minStr)
+                    );
+                } catch (e) {
+                    console.error("Ошибка даты:", item.date_time, e);
+                    item._jsDate = new Date(0); // Чтобы не ломать сортировку
+                }
             });
 
             const now = new Date();
+            // Сортируем: Будущие по возрастанию, Прошлые по убыванию (сначала недавние)
             const future = data.filter(i => i._jsDate >= now).sort((a,b) => a._jsDate - b._jsDate);
             const past = data.filter(i => i._jsDate < now).sort((a,b) => b._jsDate - a._jsDate);
 
@@ -94,7 +117,6 @@
                 const petName = a.pet_name ? `(${a.pet_name})` : '';
                 const phone = a.phone || 'Нет номера';
 
-                // ИСПРАВЛЕНО: Защита от null
                 const userId = a.user_id ? String(a.user_id) : '';
                 const username = a.username ? String(a.username) : '';
 
@@ -113,6 +135,7 @@
                 return div;
             };
 
+            // 1. Рендер АКТУАЛЬНЫХ ЗАПИСЕЙ
             if (future.length > 0) {
                 let lastDate = '';
                 future.forEach(a => {
@@ -139,16 +162,32 @@
                 list.innerHTML += `<div style="text-align:center; padding:20px; color:#aaa">Нет актуальных записей</div>`;
             }
 
+            // 2. Рендер АРХИВА (Выпадающий список)
             if (past.length > 0) {
-                const header = document.createElement('div');
-                header.className = 'date-header';
-                header.style.marginTop = "30px";
-                header.innerText = "🗄 Архив (Прошедшие)";
-                list.appendChild(header);
+                const archiveContainer = document.createElement('div');
+                archiveContainer.className = 'archive-container';
+
+                // Кнопка открытия
+                const btn = document.createElement('div');
+                btn.className = 'archive-btn';
+                btn.onclick = function() {
+                    this.classList.toggle('open');
+                    const content = this.nextElementSibling;
+                    content.classList.toggle('show');
+                };
+                btn.innerHTML = `<span>🗄 Архив (${past.length})</span> <span class="archive-arrow">▼</span>`;
+
+                // Скрытый список
+                const arcList = document.createElement('div');
+                arcList.className = 'archive-list';
 
                 past.forEach(a => {
-                    list.appendChild(renderItem(a, true));
+                    arcList.appendChild(renderItem(a, true));
                 });
+
+                archiveContainer.appendChild(btn);
+                archiveContainer.appendChild(arcList);
+                list.appendChild(archiveContainer);
             }
         }
 
@@ -159,7 +198,6 @@
             .catch(err => { tg.showAlert("Ошибка копирования"); });
         }
 
-        // ИСПРАВЛЕНО: Проверка на пустоту
         function openChat(userId, username) {
             try { tg.HapticFeedback.impactOccurred('light'); } catch(e){}
 
