@@ -191,16 +191,22 @@
             .catch(err => { tg.showAlert("Ошибка копирования"); });
         }
 
-        function openChat(userId, username) {
+function openChat(userId, username) {
             try { tg.HapticFeedback.impactOccurred('light'); } catch(e){}
-            if (username && username !== 'null' && username !== 'undefined' && username !== '') {
-                tg.openTelegramLink(`https://t.me/${username}`);
+
+            // 1. Если есть username - открываем его (самый надежный способ)
+            if (username && username !== '' && username !== 'null' && username !== 'undefined') {
+                // Убираем @ если вдруг попала
+                const cleanUsername = username.replace('@', '');
+                tg.openTelegramLink(`https://t.me/${cleanUsername}`);
                 return;
             }
-            if (userId && userId !== 'null') {
+
+            // 2. Если username нет, пробуем по ID
+            if (userId && userId !== '' && userId !== 'null') {
                 tg.openTelegramLink(`tg://user?id=${userId}`);
             } else {
-                tg.showAlert("У клиента скрыт профиль и нет username.");
+                tg.showAlert("Не удалось открыть чат. У клиента скрыт профиль.");
             }
         }
 
