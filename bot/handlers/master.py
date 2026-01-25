@@ -5,7 +5,9 @@ from aiogram.fsm.state import State, StatesGroup
 
 # --- ИСПРАВЛЕННЫЕ ИМПОРТЫ ---
 from bot.database import requests as db  # Импортируем запросы как db
-from bot.keyboards import keyboards as kb  # Импортируем клавиатуры как kb
+# ВНИМАНИЕ: Проверьте, что файл называется именно keyboards.py,
+# если мы раньше называли его main_kb.py, то поправьте импорт ниже на main_kb
+from bot.keyboards import keyboards as kb
 from config import ADMIN_ID  # Импорт админа из корня
 
 # -----------------------------
@@ -53,7 +55,8 @@ async def finish_master_registration(message: types.Message, state: FSMContext):
 
     # 2. Генерируем правильную ссылку (на старт бота)
     bot_info = await message.bot.get_me()
-    personal_link = f"<code>https://t.me/{bot_info.username}?start={m_id}</code>"
+    # ИЗМЕНЕНИЕ: Убрали теги <code>, теперь ссылка кликабельная
+    personal_link = f"https://t.me/{bot_info.username}?start={m_id}"
 
     # 3. Отправляем успех и ОБНОВЛЯЕМ меню на "Мастерское"
     await message.answer(
@@ -83,9 +86,10 @@ async def send_personal_link(message: types.Message):
     m_id = message.from_user.id
 
     # Вот здесь раньше была ошибка, теперь db определен
-    if db.is_master(m_id) or m_id == int(ADMIN_ID or 0):
+    if db.is_master(m_id) or str(m_id) == str(ADMIN_ID or 0):
         bot_info = await message.bot.get_me()
-        link = f"<code>https://t.me/{bot_info.username}?start={m_id}</code>"
+        # ИЗМЕНЕНИЕ: Убрали теги <code>, теперь ссылка кликабельная
+        link = f"https://t.me/{bot_info.username}?start={m_id}"
 
         await message.answer(
             f"📋 <b>Ваша ссылка для клиентов:</b>\n\n{link}\n\n"
