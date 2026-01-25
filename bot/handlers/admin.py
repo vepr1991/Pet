@@ -1,7 +1,7 @@
 from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from config import ADMIN_ID
-import database as db
+from bot.database import requests as db
 
 router = Router()
 
@@ -29,7 +29,7 @@ async def view_appointments(message: types.Message):
     if rows:
         for index, r in enumerate(rows, start=1):
             # Распаковка данных (db_id, breed, name, serv, dt, phone, client_id, m_id)
-            # Убедись, что твоя функция в database.py возвращает именно такой набор колонок
+            # Убедись, что твоя функция в БД возвращает именно такой набор колонок
             db_id, breed, name, serv, dt, phone, client_id = r[:7]
 
             text = (f"📍 <b>Запись №{db_id}</b>\n"

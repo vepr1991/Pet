@@ -1,8 +1,9 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 from config import TOKEN
-import database as db
-from handlers import client, admin, master # Добавили master
+from bot.database import requests as db
+from bot.handlers import client, master, admin
+
 
 async def main():
     db.init_db()

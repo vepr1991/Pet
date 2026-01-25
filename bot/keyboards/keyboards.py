@@ -1,5 +1,5 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
-import database as db
+from bot.database import requests as db
 
 BASE_URL = "https://vepr1991.github.io/Pet"
 

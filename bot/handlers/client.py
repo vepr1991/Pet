@@ -1,8 +1,8 @@
 import json
 from aiogram import Router, types, F
 from aiogram.filters import Command, CommandObject
-import database as db
-import keyboards as kb
+from bot.database import requests as db
+from bot.keyboards import keyboards as kb
 from config import ADMIN_ID
 
 router = Router()

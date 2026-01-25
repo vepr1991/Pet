@@ -1,10 +1,8 @@
-import json
 from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-import database as db
-import keyboards as kb
+from bot.keyboards import keyboards as kb
 from config import ADMIN_ID
 
 router = Router()
