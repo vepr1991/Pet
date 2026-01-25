@@ -1,26 +1,26 @@
 :root {
     /* Backgrounds */
-    --bg: #F2F2F7;       /* Классический iOS серый фон */
+    --bg: #F2F2F7;
     --card: #FFFFFF;
-    --input-bg: #EFEFF4; /* Чуть темнее белого для полей */
+    --input-bg: #EFEFF4;
 
     /* Text Colors */
     --text: #000000;
-    --muted: #8E8E93;    /* iOS System Gray */
-    --border: #E5E5EA;   /* Мягкий разделитель */
+    --muted: #8E8E93;
+    --border: #E5E5EA;
 
     /* Brand Colors */
-    --accent: #007AFF;   /* iOS Blue */
+    --accent: #007AFF;
     --accent-soft: rgba(0, 122, 255, 0.12);
     --danger: #FF3B30;
     --green: #34C759;
     --green-soft: rgba(52, 199, 89, 0.12);
 
-    /* Dimensions & Effects */
-    --r-sm: 10px;        /* Чуть более скругленные малые элементы */
-    --r-md: 16px;        /* Карточки теперь круглее */
-    --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.04); /* Очень мягкая тень вместо границ */
-    --transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); /* Плавная анимация */
+    /* Dimensions */
+    --r-sm: 10px;
+    --r-md: 16px;
+    --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.04);
+    --transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 body {
@@ -30,261 +30,145 @@ body {
     background: var(--bg);
     color: var(--text);
     -webkit-tap-highlight-color: transparent;
-    -webkit-font-smoothing: antialiased; /* Делает шрифты тоньше и четче на iOS */
+    -webkit-font-smoothing: antialiased;
     padding-bottom: 60px;
 }
 
-/* --- Layout & Typography --- */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding: 0 4px; /* Небольшой отступ от краев */
-}
-.header h2 {
-    margin: 0;
-    font-size: 20px; /* Уменьшили с 22px для аккуратности */
-    font-weight: 700;
-    letter-spacing: -0.5px; /* Плотный кернинг как в iOS */
-}
-.section-label {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 20px 0 8px 8px; /* Чуть больше воздуха сверху */
-    letter-spacing: 0.5px;
-}
+/* --- Layout --- */
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 4px; }
+.header h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+.section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--muted); margin: 20px 0 8px 8px; letter-spacing: 0.5px; }
 
-/* --- Cards (Soft Look) --- */
+/* --- Cards --- */
 .card {
     background: var(--card);
     border-radius: var(--r-md);
     padding: 16px;
     margin-bottom: 12px;
-    /* Убрали жесткий border, добавили мягкую тень */
     border: none;
     box-shadow: var(--shadow-soft);
 }
 
-/* web/css/style.css */
-
-/* --- Inputs (Исправлено: Белый фон и границы) --- */
+/* --- Inputs (ИСПРАВЛЕНО: Белый фон и границы) --- */
 input {
     width: 100%;
     padding: 12px 16px;
     border-radius: var(--r-sm);
-    /* Вернул тонкую рамку для четкости */
-    border: 1px solid #E5E5EA;
-    /* Сделал фон белым, чтобы он выделялся на серой странице */
+    /* Четкая граница */
+    border: 1px solid #C7C7CC;
+    /* Белый фон */
     background: #FFFFFF;
     font-size: 16px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     box-sizing: border-box;
     transition: var(--transition);
     color: var(--text);
-    /* Убрал стандартный стиль iOS, чтобы наши стили применились */
     -webkit-appearance: none;
 }
-
 input::placeholder { color: #C7C7CC; }
-
 input:focus {
     border-color: var(--accent);
     outline: none;
-    /* Легкая тень при нажатии */
     box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-/* --- Tabs (Segmented Control Style) --- */
-.tab-menu {
-    display: flex;
-    background: #E5E5EA; /* Серый трек */
-    padding: 3px;
-    border-radius: 12px; /* Чуть меньше радиус чем у карточек */
-    margin-bottom: 24px;
-}
-.tab {
-    flex: 1;
-    text-align: center;
-    padding: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #636366;
-    border-radius: 9px;
-    cursor: pointer;
-    transition: var(--transition);
-}
-.tab.active {
-    background: #fff;
-    color: #000;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12); /* Эффект приподнятой кнопки */
-}
+/* --- Tabs --- */
+.tab-menu { display: flex; background: #E5E5EA; padding: 3px; border-radius: 12px; margin-bottom: 24px; }
+.tab { flex: 1; text-align: center; padding: 8px; font-size: 13px; font-weight: 600; color: #636366; border-radius: 9px; cursor: pointer; transition: var(--transition); }
+.tab.active { background: #fff; color: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
 
-/* --- Buttons (Compact & Bouncy) --- */
+/* --- Buttons --- */
 .btn {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: var(--r-md);
-    background: var(--accent);
-    color: #fff;
-    font-size: 16px; /* Уменьшили шрифт */
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.1s ease, opacity 0.2s; /* Анимация нажатия */
+    width: 100%; padding: 14px; border: none; border-radius: var(--r-md);
+    background: var(--accent); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+    transition: transform 0.1s ease, opacity 0.2s;
 }
-.btn:active {
-    transform: scale(0.97); /* Эффект нажатия (пружинка) */
-    opacity: 0.9;
-}
+.btn:active { transform: scale(0.97); opacity: 0.9; }
 
 .btn-del {
-    width: 28px; height: 28px; /* Чуть меньше */
-    border-radius: 50%;
-    background: rgba(255, 59, 48, 0.1); /* Прозрачный красный фон */
-    color: var(--danger);
-    border: none;
-    font-size: 14px;
-    font-weight: 700;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(255, 59, 48, 0.1); color: var(--danger);
+    border: none; font-size: 14px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     transition: var(--transition);
 }
 .btn-del:active { background: var(--danger); color: #fff; }
 
 /* --- Lists --- */
-.service-row, .service-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 14px 4px; /* Больше воздуха внутри строки */
-    border-bottom: 1px solid var(--border);
-    transition: background 0.2s;
-}
+.service-row, .service-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 4px; border-bottom: 1px solid var(--border); transition: background 0.2s; }
 .service-item { cursor: pointer; border-bottom: 1px solid var(--border); padding: 14px 8px; border-radius: 8px;}
 .service-item:last-child, .service-row:last-child { border-bottom: none; }
-.service-item.active {
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-weight: 500;
-}
+.service-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
 
-/* Карточка записи */
-.appt-card {
-    border-left: none; /* Убираем цветную полоску сбоку */
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-/* Вместо полоски делаем маленький кружок-индикатор */
-.appt-card::before {
-    content: '';
-    position: absolute;
-    top: 18px; right: 16px;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-}
+.appt-card { border-left: none; position: relative; display: flex; flex-direction: column; gap: 4px; }
+.appt-card.past { opacity: 0.6; background: #f9f9f9; }
+.appt-card::before { content: ''; position: absolute; top: 18px; right: 16px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.appt-card.past::before { background: #ccc; }
 
 .appt-time { color: var(--accent); font-weight: 600; font-size: 14px; }
 .client-name { font-size: 17px; font-weight: 600; margin-top: 2px;}
 .info-row { font-size: 14px; color: #666; }
+.date-header { font-size: 13px; font-weight: 700; color: var(--muted); margin: 24px 0 8px 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* --- Secondary Buttons (Outline style) --- */
+/* --- Secondary Buttons --- */
 .copy-phone-btn, .btn-write {
-    padding: 10px; /* Компактнее */
-    border-radius: 10px;
+    padding: 10px; border-radius: 10px;
     text-align: center; font-weight: 500; font-size: 15px;
     margin-top: 12px; cursor: pointer;
     display: flex; justify-content: center; align-items: center; gap: 8px;
     transition: var(--transition);
 }
-
 .copy-phone-btn { background-color: #F2F2F7; color: #000; }
 .copy-phone-btn:active { background-color: #E5E5EA; transform: scale(0.98); }
-
 .btn-write { background: var(--green-soft); color: #2da84e; text-decoration: none; }
 .btn-write:active { background: rgba(52, 199, 89, 0.2); transform: scale(0.98); }
 
 /* --- Selection Grid --- */
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .select-card {
-    border: 1px solid transparent;
-    background: var(--input-bg);
-    border-radius: var(--r-md);
-    padding: 16px 8px; text-align: center;
-    cursor: pointer;
-    transition: var(--transition);
+    border: 1px solid #E5E5EA; background: #fff;
+    border-radius: var(--r-md); padding: 16px 8px; text-align: center; cursor: pointer; transition: var(--transition);
     font-size: 13px; font-weight: 500;
 }
-.select-card.active {
-    background: #fff;
-    border-color: var(--accent);
-    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15); /* Цветная тень */
-    transform: translateY(-2px); /* Легкий подъем */
-}
+.select-card.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15); transform: translateY(-2px); }
 
-/* --- Calendar --- */
+/* --- Calendar (ИСПРАВЛЕНО: Адаптивность) --- */
 .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
+
+/* Gap уменьшен до 4px, убраны фиксированные ширины */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
 
 .day {
-    padding: 8px 0;
-    border-radius: 50%; /* Круглые дни */
+    padding: 0;
+    /* Делаем дни резиновыми, но квадратными */
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
     cursor: pointer;
-    width: 36px; height: 36px; /* Фиксированный размер для круга */
+    width: auto; /* Авто-ширина */
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto;
     font-size: 14px; font-weight: 500;
     transition: var(--transition);
 }
 .day.active { background: var(--accent); color: #fff; font-weight: 600; box-shadow: 0 4px 10px rgba(0, 122, 255, 0.3); }
 .day.disabled { color: #D1D1D6; pointer-events: none; }
 
-.time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
+.time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 20px; }
 .time-slot {
     padding: 10px 0; text-align: center;
-    border-radius: 10px;
-    background: var(--input-bg);
-    border: 1px solid transparent;
-    cursor: pointer;
-    font-size: 14px;
-    transition: var(--transition);
+    border-radius: 10px; background: #fff;
+    border: 1px solid #E5E5EA;
+    cursor: pointer; font-size: 14px; transition: var(--transition);
 }
-.time-slot.active {
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);
-}
-/* Занятый слот - просто бледный, без зачеркивания (мягче) */
-.time-slot.busy {
-    background: #F2F2F7;
-    color: #C7C7CC;
-    pointer-events: none;
-}
+.time-slot.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2); }
+.time-slot.busy { background: #F2F2F7; color: #C7C7CC; pointer-events: none; border-color: transparent; }
+
+/* Стиль для прошедшего времени (нового) */
+.time-slot.past { background: #F9F9F9; color: #E5E5EA; pointer-events: none; border-color: transparent; }
 
 /* --- Modal --- */
 #custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 999; }
-.modal-box {
-    background: #fff;
-    padding: 24px;
-    border-radius: 20px;
-    width: 260px;
-    text-align: center;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-}
+.modal-box { background: #fff; padding: 24px; border-radius: 20px; width: 260px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
 .modal-btns { display: flex; gap: 12px; margin-top: 24px; }
-.m-btn {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.1s;
-}
+.m-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: transform 0.1s; }
 .m-yes { background: var(--danger); color: #fff; }
-.m-yes:active { transform: scale(0.96); }
 .m-no { background: #F2F2F7; color: #000; }
-.m-no:active { background: #E5E5EA; transform: scale(0.96); }

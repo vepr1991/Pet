@@ -10,7 +10,7 @@
 
 <body>
     <div class="card">
-        <h2 id="studio-name" style="margin:0; font-size:20px;">Загрузка...</h2>
+        <h2 id="studio-name" style="margin:0;">Загрузка...</h2>
     </div>
 
     <div class="section-label">1. Питомец</div>
@@ -19,6 +19,8 @@
         <div class="select-card" id="pet-cat" onclick="setPetType('Кошка','pet-cat')">🐱<br>Кошка</div>
         <div class="select-card" id="pet-other" onclick="setPetType('Другой','pet-other')">🐰<br>Другой</div>
     </div>
+
+    <div class="section-label">Данные</div>
     <input type="text" id="p-breed" placeholder="Порода (например: Шпиц) *">
     <input type="text" id="p-name" placeholder="Кличка питомца *">
 
@@ -40,10 +42,9 @@
     <div class="section-label">4. Контакты</div>
     <input type="tel" id="p-phone" placeholder="+7 (___) ___-__-__ *">
 
-    <button class="btn" onclick="sendBooking()">Записаться</button>
+    <button class="btn" onclick="sendBooking()" style="margin-top: 10px;">Записаться</button>
 
 <script src="js/utils.js"></script>
-
 <script>
     const mId = new URLSearchParams(window.location.search).get('master');
     let currDate = new Date();
@@ -120,6 +121,7 @@
         }
     }
 
+    // --- ОБНОВЛЕННАЯ ФУНКЦИЯ С ПРОВЕРКОЙ ВРЕМЕНИ ---
     async function loadBusySlotsAndRender(dateStr) {
         const grid = document.getElementById('time-slots');
         const loader = document.getElementById('loader-time');
@@ -137,6 +139,16 @@
         let busyTimes = [];
         if (data) { busyTimes = data.map(item => item.date_time.split(' ')[1]); }
 
+        // Проверка на "Сегодня"
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const todayStr = `${day}.${month}.${year}`;
+
+        const isToday = (dateStr === todayStr);
+        const currentHour = now.getHours();
+
         for(let h=9; h<=20; h++){
             const t = `${h}:00`;
             const div = document.createElement('div');
@@ -146,7 +158,12 @@
             if (busyTimes.includes(t)) {
                 div.classList.add('busy');
                 div.innerText += " ❌";
-            } else {
+            }
+            // Блокируем прошедшие часы
+            else if (isToday && h <= currentHour) {
+                div.classList.add('past');
+            }
+            else {
                 div.onclick=()=>{
                     document.querySelectorAll('.time-slot').forEach(el=>el.classList.remove('active'));
                     div.classList.add('active');
@@ -156,6 +173,7 @@
             grid.appendChild(div);
         }
     }
+    // ---------------------------------------------
 
     function changeMonth(dir){
         currDate.setMonth(currDate.getMonth()+dir);
