@@ -4,6 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="stylesheet" href="css/style.css">
+<style>
+    /* Доп. стили для категорий и расширенных карточек услуг */
+    .cat-scroll { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 5px; margin-bottom: 15px; scrollbar-width: none; }
+    .cat-scroll::-webkit-scrollbar { display: none; }
+    .cat-chip {
+        padding: 8px 16px; background: #fff; border-radius: 20px; font-size: 13px; font-weight: 600;
+        white-space: nowrap; border: 1px solid #E5E5EA; transition: 0.2s; color: #000;
+    }
+    .cat-chip.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+    .service-card-rich {
+        display: flex; gap: 12px; padding: 12px; background: #fff; border-radius: 16px; margin-bottom: 10px;
+        box-shadow: var(--shadow-soft); transition: 0.2s; border: 2px solid transparent;
+    }
+    .service-card-rich.active { border-color: var(--accent); background: var(--accent-soft); }
+    .srv-img { width: 60px; height: 60px; border-radius: 10px; background: #f0f0f0; object-fit: cover; flex-shrink: 0; }
+    .srv-info { flex: 1; }
+    .srv-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; line-height: 1.2; }
+    .srv-desc { font-size: 12px; color: #666; margin-bottom: 6px; line-height: 1.3; }
+    .srv-price { font-weight: 700; color: var(--accent); font-size: 15px; }
+</style>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -20,12 +41,14 @@
         <div class="select-card" id="pet-other" onclick="setPetType('Другой','pet-other')">🐰<br>Другой</div>
     </div>
 
-    <div class="section-label">Данные</div>
-    <input type="text" id="p-breed" placeholder="Порода (например: Шпиц) *">
+    <input type="text" id="p-breed" placeholder="Порода (например: Шпиц) *" style="margin-top:10px;">
     <input type="text" id="p-name" placeholder="Кличка питомца *">
 
-    <div class="section-label">2. Услуга</div>
-    <div class="card" id="services-container" style="padding:0"><div style="padding:20px;text-align:center">Загрузка...</div></div>
+    <div class="section-label">2. Выберите услугу</div>
+
+    <div class="cat-scroll" id="category-filter"></div>
+
+    <div id="services-container" style="min-height: 50px;">Загрузка...</div>
 
     <div class="section-label">3. Дата и время</div>
     <div class="card">
@@ -35,21 +58,23 @@
             <button onclick="changeMonth(1)" style="font-size:18px;border:none;background:none;color:var(--accent)">❯</button>
         </div>
         <div class="cal-grid" id="calendar"></div>
-        <div id="loader-time" style="display:none; text-align:center; margin-top:10px; color:#999; font-size:12px;">Проверка свободного времени...</div>
+        <div id="loader-time" style="display:none; text-align:center; margin-top:10px; color:#999; font-size:12px;">Проверка...</div>
         <div class="time-grid" id="time-slots"></div>
     </div>
 
-    <div class="section-label">4. Контакты</div>
+    <div class="section-label">4. Ваши контакты</div>
     <input type="tel" id="p-phone" placeholder="+7 (___) ___-__-__ *">
 
-    <button class="btn" onclick="sendBooking()" style="margin-top: 10px;">Записаться</button>
+    <button class="btn" onclick="sendBooking()" style="margin-top: 20px;">Записаться</button>
 
 <script src="js/utils.js"></script>
 <script>
     const mId = new URLSearchParams(window.location.search).get('master');
     let currDate = new Date();
     let booking = { pet_type:"", breed:"", pet_name:"", service:"", phone:"", date:null, time:null, master_id:mId };
+    let allServices = [];
 
+    // Маска телефона
     document.getElementById('p-phone').addEventListener('input', function(e) {
         let x = e.target.value.replace(/\D/g,'').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
         e.target.value = !x[2] ? x[1] : '+7 ('+x[2]+(x[3]?') '+x[3]:'')+(x[4]?'-'+x[4]:'')+(x[5]?'-'+x[5]:'');
@@ -61,25 +86,74 @@
         const { data:m } = await _sb.from('masters').select('studio_name').eq('telegram_id', Number(mId)).single();
         if (m) document.getElementById('studio-name').innerText = m.studio_name;
 
+        // Загружаем услуги
         const { data:srv } = await _sb.from('services').select('*').eq('master_id', Number(mId));
+        allServices = srv || [];
+
+        renderCategories();
+        renderCalendar();
+    }
+
+    function renderCategories() {
+        const catContainer = document.getElementById('category-filter');
+        const srvContainer = document.getElementById('services-container');
+
+        if (allServices.length === 0) {
+            srvContainer.innerHTML = '<div style="padding:20px;color:#666;text-align:center">Нет услуг</div>';
+            return;
+        }
+
+        const categories = [...new Set(allServices.map(s => s.category || "Основное"))].sort();
+
+        catContainer.innerHTML = '';
+
+        categories.forEach((cat, index) => {
+            const btn = document.createElement('div');
+            btn.className = `cat-chip ${index === 0 ? 'active' : ''}`;
+            btn.innerText = cat;
+            btn.onclick = () => {
+                document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                renderServices(cat);
+            };
+            catContainer.appendChild(btn);
+        });
+
+        if(categories.length > 0) renderServices(categories[0]);
+    }
+
+    function renderServices(category) {
         const container = document.getElementById('services-container');
         container.innerHTML = "";
-        if (srv && srv.length) {
-            srv.forEach(s => {
-                const item = document.createElement('div');
-                item.className = 'service-item';
-                item.innerHTML = `<span>${s.name}</span><b>${s.price} ₸</b>`;
-                item.onclick = () => {
-                    document.querySelectorAll('.service-item').forEach(el=>el.classList.remove('active'));
-                    item.classList.add('active');
-                    booking.service = s.name;
-                };
-                container.appendChild(item);
-            });
-        } else {
-            container.innerHTML = '<div style="padding:20px;color:#666;text-align:center">Нет услуг</div>';
-        }
-        renderCalendar();
+
+        const filtered = allServices.filter(s => (s.category || "Основное") === category);
+
+        filtered.forEach(s => {
+            const item = document.createElement('div');
+            item.className = 'service-card-rich';
+
+            const imgHtml = s.image_url
+                ? `<img src="${s.image_url}" class="srv-img">`
+                : `<div class="srv-img" style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px;">✂️</div>`;
+
+            const descShort = s.description ? (s.description.length > 60 ? s.description.substring(0,60)+'...' : s.description) : '';
+
+            item.innerHTML = `
+                ${imgHtml}
+                <div class="srv-info">
+                    <div class="srv-title">${s.name}</div>
+                    ${descShort ? `<div class="srv-desc">${descShort}</div>` : ''}
+                    <div class="srv-price">${s.price} ₸</div>
+                </div>
+            `;
+
+            item.onclick = () => {
+                document.querySelectorAll('.service-card-rich').forEach(el=>el.classList.remove('active'));
+                item.classList.add('active');
+                booking.service = s.name;
+            };
+            container.appendChild(item);
+        });
     }
 
     function setPetType(type,id){
@@ -121,32 +195,25 @@
         }
     }
 
-    // --- ОБНОВЛЕННАЯ ФУНКЦИЯ С ПРОВЕРКОЙ ВРЕМЕНИ ---
     async function loadBusySlotsAndRender(dateStr) {
         const grid = document.getElementById('time-slots');
         const loader = document.getElementById('loader-time');
         grid.innerHTML = "";
         loader.style.display = "block";
 
-        const { data, error } = await _sb
+        // --- ИСПРАВЛЕНИЕ: Исключаем отмененные записи ---
+        const { data } = await _sb
             .from('appointments')
             .select('date_time')
             .eq('master_id', Number(mId))
-            .ilike('date_time', `${dateStr}%`);
+            .ilike('date_time', `${dateStr}%`)
+            .neq('status', 'cancelled'); // <--- ВАЖНО: Игнорируем статус 'cancelled'
 
         loader.style.display = "none";
 
-        let busyTimes = [];
-        if (data) { busyTimes = data.map(item => item.date_time.split(' ')[1]); }
-
-        // Проверка на "Сегодня"
+        let busyTimes = (data || []).map(item => item.date_time.split(' ')[1]);
         const now = new Date();
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const year = now.getFullYear();
-        const todayStr = `${day}.${month}.${year}`;
-
-        const isToday = (dateStr === todayStr);
+        const isToday = (dateStr === `${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()}`);
         const currentHour = now.getHours();
 
         for(let h=9; h<=20; h++){
@@ -155,14 +222,8 @@
             div.className = 'time-slot';
             div.innerText = t;
 
-            if (busyTimes.includes(t)) {
-                div.classList.add('busy');
-                div.innerText += " ❌";
-            }
-            // Блокируем прошедшие часы
-            else if (isToday && h <= currentHour) {
-                div.classList.add('past');
-            }
+            if (busyTimes.includes(t)) { div.classList.add('busy'); div.innerText += " ❌"; }
+            else if (isToday && h <= currentHour) { div.classList.add('past'); }
             else {
                 div.onclick=()=>{
                     document.querySelectorAll('.time-slot').forEach(el=>el.classList.remove('active'));
@@ -173,12 +234,8 @@
             grid.appendChild(div);
         }
     }
-    // ---------------------------------------------
 
-    function changeMonth(dir){
-        currDate.setMonth(currDate.getMonth()+dir);
-        renderCalendar();
-    }
+    function changeMonth(dir){ currDate.setMonth(currDate.getMonth()+dir); renderCalendar(); }
 
     function sendBooking() {
         booking.username = tg.initDataUnsafe.user?.username || "";
@@ -194,6 +251,3 @@
     }
 
     init();
-</script>
-</body>
-</html>
