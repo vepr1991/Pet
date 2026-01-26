@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css"> 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -26,19 +26,18 @@
     <div id="tab-services" class="section">
         <div class="card">
             <span class="section-label">Добавить услугу</span>
-
-            <input type="text" id="srv-name" placeholder="Название (например: Стрижка Йорка)">
-            <input type="text" id="srv-category" placeholder="Категория (например: Собаки / Кошки)" list="cat-suggestions">
+            
+            <input type="text" id="srv-name" placeholder="Название">
+            <input type="text" id="srv-category" placeholder="Категория" list="cat-suggestions">
             <datalist id="cat-suggestions">
                 <option value="Собаки мелкие">
                 <option value="Собаки крупные">
                 <option value="Кошки">
-                <option value="Грызуны">
             </datalist>
-
+            
             <input type="number" id="srv-price" placeholder="Цена (₸)">
-            <input type="text" id="srv-desc" placeholder="Описание (что входит в услугу)">
-            <input type="text" id="srv-image" placeholder="Ссылка на фото (https://...)">
+            <input type="text" id="srv-desc" placeholder="Описание">
+            <input type="text" id="srv-image" placeholder="Ссылка на фото">
 
             <button class="btn" onclick="addService()">Добавить</button>
         </div>
@@ -55,22 +54,20 @@
         </div>
     </div>
 
-    <script src="js/utils.js"></script>
-
+    <script src="js/utils.js"></script> 
     <script>
         const params = new URLSearchParams(window.location.search);
         let mId = Number(params.get('master')) || Number(tg.initDataUnsafe.user?.id);
-
         let deleteId = null;
-        let deleteTarget = null;
+        let deleteTarget = null; 
 
         async function init() {
             if (!mId) { document.body.innerHTML = "<div style='padding:50px; text-align:center;'>⚠️ ID мастера не найден.</div>"; return; }
             await refreshData();
         }
-
+        
         async function refreshData() { await loadMaster(); await loadAppts(); await loadServices(); }
-
+        
         async function loadMaster() {
             const { data } = await _sb.from('masters').select('studio_name').eq('telegram_id', mId).single();
             if (data) document.getElementById('studio-name').innerText = data.studio_name;
@@ -80,13 +77,12 @@
         async function loadAppts() {
             const list = document.getElementById('appts-list');
             list.innerHTML = '<div style="text-align:center; padding:20px; color:#999">Загрузка...</div>';
-
+            
             const { data, error } = await _sb.from('appointments').select('*').eq('master_id', mId);
-
-            if (error) { list.innerHTML = `<div style="text-align:center; color:red">Ошибка БД</div>`; return; }
+            
+            if (error) { list.innerHTML = `<div style="text-align:center; color:red">Ошибка: ${error.message}</div>`; return; }
             if (!data || data.length === 0) { list.innerHTML = `<div style="text-align:center; margin-top:40px; color:#999;">📭 Пока нет записей</div>`; return; }
 
-            // Парсинг дат
             data.forEach(item => {
                 try {
                     const [dPart, tPart] = item.date_time.split(' ');
@@ -97,169 +93,124 @@
             });
 
             const now = new Date();
-
-            // --- НОВАЯ ЛОГИКА ФИЛЬТРАЦИИ ---
-            // Future: Будущее И статус НЕ отменен
+            // Активные: будущее и НЕ отмененные
             const future = data.filter(i => i._jsDate >= now && i.status !== 'cancelled').sort((a,b) => a._jsDate - b._jsDate);
-
-            // Archive: Прошлое ИЛИ статус отменен
+            // Архив: прошлое ИЛИ отмененные
             const archive = data.filter(i => i._jsDate < now || i.status === 'cancelled').sort((a,b) => b._jsDate - a._jsDate);
-            // -------------------------------
 
             list.innerHTML = '';
-
+            
             const renderItem = (a, isArchive) => {
                 const div = document.createElement('div');
                 div.className = `card appt-card ${isArchive ? 'past' : ''}`;
-
-                const client = a.client_name || 'Клиент';
-                const breed = a.breed || 'Питомец';
-                const petName = a.pet_name ? `(${a.pet_name})` : '';
-                const phone = a.phone || 'Нет номера';
-                const userId = a.user_id ? String(a.user_id) : '';
-                const username = a.username ? String(a.username) : '';
-
-                // Проверяем статус для отображения
+                
                 const isCancelled = a.status === 'cancelled';
-                const statusLabel = isCancelled
-                    ? '<span style="color:var(--danger); font-weight:bold;">❌ Отменено</span>'
-                    : (isArchive ? '🏁 Завершен' : '📅');
-
-                // Кнопку удаления показываем только если запись НЕ отменена (чтобы два раза не удалять)
-                const deleteBtnHtml = !isCancelled
-                    ? `<button class="btn-appt-del" onclick="askDeleteAppt(${a.id})">🗑</button>`
-                    : '';
+                const statusLabel = isCancelled ? '<span style="color:var(--danger)">❌ Отменено</span>' : (isArchive ? '🏁' : '📅');
+                
+                // Кнопка удаления только для активных
+                const deleteBtnHtml = (!isCancelled && !isArchive) 
+                    ? `<button class="btn-appt-del" onclick="askDeleteAppt(${a.id})">🗑</button>` : '';
 
                 div.innerHTML = `
                     ${deleteBtnHtml}
-                    <div class="appt-time">
-                        ${statusLabel} ${a.date_time}
-                    </div>
-                    <div class="client-name" style="${isCancelled ? 'text-decoration:line-through; color:#999;' : ''}">👤 ${client}</div>
-                    <div class="info-row">🐶 ${breed} ${petName}</div>
+                    <div class="appt-time">${statusLabel} ${a.date_time}</div>
+                    <div class="client-name" style="${isCancelled ? 'text-decoration:line-through;color:#999':''}">👤 ${a.client_name}</div>
+                    <div class="info-row">🐶 ${a.breed} ${a.pet_name ? '('+a.pet_name+')' : ''}</div>
                     <div class="info-row">✂️ ${a.service}</div>
                     ${!isArchive && !isCancelled ? `
-                    <div class="copy-phone-btn" onclick="copyPhone('${phone}')">📞 ${phone} <span class="copy-icon">📋</span></div>
-                    <div onclick="openChat('${userId}', '${username}')" class="btn-write">💬 Написать в Telegram</div>
+                    <div class="copy-phone-btn" onclick="copyPhone('${a.phone}')">📞 ${a.phone}</div>
                     ` : ''}
                 `;
                 return div;
             };
 
-            // Рендер Актуальных
             if (future.length > 0) {
-                let lastDate = '';
-                future.forEach(a => {
-                    const dateKey = a.date_time.split(' ')[0];
-                    if (dateKey !== lastDate) {
-                        const header = document.createElement('div');
-                        header.className = 'date-header';
-                        header.innerText = `📅 ${dateKey}`;
-                        list.appendChild(header);
-                        lastDate = dateKey;
-                    }
-                    list.appendChild(renderItem(a, false));
-                });
+                future.forEach(a => list.appendChild(renderItem(a, false)));
             } else { list.innerHTML += `<div style="text-align:center; padding:20px; color:#aaa">Нет актуальных записей</div>`; }
 
-            // Рендер Архива
             if (archive.length > 0) {
                 const archiveContainer = document.createElement('div');
                 archiveContainer.className = 'archive-container';
+                
                 const btn = document.createElement('div');
-                btn.className = 'archive-btn';
+                btn.className = 'archive-btn'; // Можно добавить class "open", чтобы сразу открыть
                 btn.onclick = function() { this.classList.toggle('open'); this.nextElementSibling.classList.toggle('show'); };
-                btn.innerHTML = `<span>🗄 Архив / Отмены (${archive.length})</span> <span class="archive-arrow">▼</span>`;
-
+                btn.innerHTML = `<span>🗄 Архив (${archive.length})</span> <span class="archive-arrow">▼</span>`;
+                
                 const arcList = document.createElement('div');
-                arcList.className = 'archive-list';
+                arcList.className = 'archive-list'; // Можно добавить class "show"
                 archive.forEach(a => arcList.appendChild(renderItem(a, true)));
-
+                
                 archiveContainer.appendChild(btn); archiveContainer.appendChild(arcList);
                 list.appendChild(archiveContainer);
             }
         }
 
-        // --- УПРАВЛЕНИЕ УСЛУГАМИ ---
-        async function loadServices() {
-            const list = document.getElementById('services-list');
-            const { data } = await _sb.from('services').select('*').eq('master_id', mId).order('category', { ascending: true });
-            if (!data || data.length === 0) { list.innerHTML = '<div style="padding:20px; text-align:center; color:#999">Список пуст</div>'; return; }
-            list.innerHTML = '';
-
-            data.forEach(s => {
-                const div = document.createElement('div');
-                div.className = 'service-row';
-                div.innerHTML = `
-                    <div style="flex:1;">
-                        <div style="font-size:10px; color:#888; text-transform:uppercase; margin-bottom:2px;">${s.category || 'Без категории'}</div>
-                        <div style="font-size:16px; font-weight:500;">${s.name}</div>
-                        ${s.description ? `<div style="font-size:12px; color:#666; margin-top:2px;">${s.description.substring(0,30)}...</div>` : ''}
-                        <div style="color:var(--accent); font-weight:600; margin-top:4px;">${s.price} ₸</div>
-                    </div>
-                    <button class="btn-del" onclick="askDeleteService(${s.id})">✕</button>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        async function addService() {
-            const name = document.getElementById('srv-name').value;
-            const category = document.getElementById('srv-category').value || 'Основное';
-            const price = document.getElementById('srv-price').value;
-            const desc = document.getElementById('srv-desc').value;
-            const img = document.getElementById('srv-image').value;
-
-            if (!name || !price) return tg.showAlert("Название и цена обязательны");
-
-            await _sb.from('services').insert([{
-                master_id: mId, name: name, category: category,
-                price: Number(price), description: desc, image_url: img
-            }]);
-
-            document.getElementById('srv-name').value = ''; document.getElementById('srv-price').value = '';
-            document.getElementById('srv-desc').value = ''; document.getElementById('srv-image').value = '';
-            await loadServices();
-        }
-
-        // --- ЛОГИКА УДАЛЕНИЯ (ОБНОВЛЕНА: Soft Delete) ---
+        // --- ЛОГИКА УДАЛЕНИЯ (Мягкое удаление) ---
         function askDeleteService(id) { deleteId = id; deleteTarget = 'service'; document.getElementById('modal-text').innerText = "Удалить услугу?"; document.getElementById('custom-modal').style.display = 'flex'; }
         function askDeleteAppt(id) { deleteId = id; deleteTarget = 'appt'; document.getElementById('modal-text').innerText = "Отменить запись?"; document.getElementById('custom-modal').style.display = 'flex'; }
         function closeModal() { document.getElementById('custom-modal').style.display = 'none'; deleteId = null; }
-
+        
         async function confirmDelete() {
             if (!deleteId) return;
             const yesBtn = document.querySelector('.m-yes');
             yesBtn.innerText = "⏳..."; yesBtn.disabled = true;
 
             if (deleteTarget === 'service') {
-                // Услуги удаляем насовсем (Hard Delete)
+                // Услуги удаляем полностью
                 await _sb.from('services').delete().eq('id', deleteId);
                 await loadServices();
-            }
+            } 
             else if (deleteTarget === 'appt') {
-                // Записи НЕ удаляем, а меняем статус (Soft Delete)
+                // Записи - ОБНОВЛЯЕМ статус
                 const { error } = await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', deleteId);
                 if(error) tg.showAlert("Ошибка: " + error.message);
                 await loadAppts();
             }
-
+            
             yesBtn.innerText = "Да, удалить"; yesBtn.disabled = false;
             closeModal();
         }
 
-        function copyPhone(phone) { navigator.clipboard.writeText(phone).then(() => { tg.showAlert("Скопировано"); }); }
-        function openChat(userId, username) {
-            if (username && username !== '' && username !== 'null') tg.openTelegramLink(`https://t.me/${username.replace('@', '')}`);
-            else if (userId) tg.openTelegramLink(`tg://user?id=${userId}`);
-            else tg.showAlert("Нет контакта");
-        }
-        function showTab(id, el) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(id).classList.add('active'); el.classList.add('active');
+        // --- СЕРВИСЫ И ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+        async function loadServices() {
+            const list = document.getElementById('services-list');
+            const { data } = await _sb.from('services').select('*').eq('master_id', mId).order('category');
+            if (!data || data.length === 0) { list.innerHTML = '<div style="padding:20px;text-align:center;color:#999">Нет услуг</div>'; return; }
+            list.innerHTML = '';
+            data.forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'service-row';
+                div.innerHTML = `
+                    <div style="flex:1">
+                        <div style="font-size:10px;color:#888;text-transform:uppercase">${s.category || 'Без категории'}</div>
+                        <div style="font-size:16px;font-weight:500">${s.name}</div>
+                        <div style="color:var(--accent);font-weight:600">${s.price} ₸</div>
+                    </div>
+                    <button class="btn-del" onclick="askDeleteService(${s.id})">✕</button>`;
+                list.appendChild(div);
+            });
         }
 
+        async function addService() {
+            const name = document.getElementById('srv-name').value;
+            const cat = document.getElementById('srv-category').value || 'Основное';
+            const price = document.getElementById('srv-price').value;
+            const desc = document.getElementById('srv-desc').value;
+            const img = document.getElementById('srv-image').value;
+            if(!name || !price) return tg.showAlert("Нужно название и цена");
+            
+            await _sb.from('services').insert([{ master_id: mId, name: name, category: cat, price: Number(price), description: desc, image_url: img }]);
+            await loadServices();
+            document.querySelectorAll('input').forEach(i => i.value = '');
+        }
+
+        function copyPhone(phone) { navigator.clipboard.writeText(phone).then(() => tg.showAlert("Скопировано")); }
+        function showTab(id, el) { 
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); 
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); 
+            document.getElementById(id).classList.add('active'); el.classList.add('active'); 
+        }
         init();
     </script>
 </body>
