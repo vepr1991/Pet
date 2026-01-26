@@ -86,7 +86,7 @@
         const { data:m } = await _sb.from('masters').select('studio_name').eq('telegram_id', Number(mId)).single();
         if (m) document.getElementById('studio-name').innerText = m.studio_name;
 
-        // Загружаем услуги с новыми полями
+        // Загружаем услуги
         const { data:srv } = await _sb.from('services').select('*').eq('master_id', Number(mId));
         allServices = srv || [];
 
@@ -103,15 +103,13 @@
             return;
         }
 
-        // Получаем уникальные категории
         const categories = [...new Set(allServices.map(s => s.category || "Основное"))].sort();
 
         catContainer.innerHTML = '';
 
-        // Создаем кнопки категорий
         categories.forEach((cat, index) => {
             const btn = document.createElement('div');
-            btn.className = `cat-chip ${index === 0 ? 'active' : ''}`; // Первая активна по умолчанию
+            btn.className = `cat-chip ${index === 0 ? 'active' : ''}`;
             btn.innerText = cat;
             btn.onclick = () => {
                 document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
@@ -121,7 +119,6 @@
             catContainer.appendChild(btn);
         });
 
-        // Показываем первую категорию сразу
         if(categories.length > 0) renderServices(categories[0]);
     }
 
@@ -135,12 +132,10 @@
             const item = document.createElement('div');
             item.className = 'service-card-rich';
 
-            // Если есть картинка - ставим, если нет - заглушка
             const imgHtml = s.image_url
                 ? `<img src="${s.image_url}" class="srv-img">`
                 : `<div class="srv-img" style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:20px;">✂️</div>`;
 
-            // Обрезаем описание, если длинное
             const descShort = s.description ? (s.description.length > 60 ? s.description.substring(0,60)+'...' : s.description) : '';
 
             item.innerHTML = `
@@ -206,7 +201,14 @@
         grid.innerHTML = "";
         loader.style.display = "block";
 
-        const { data } = await _sb.from('appointments').select('date_time').eq('master_id', Number(mId)).ilike('date_time', `${dateStr}%`);
+        // --- ИСПРАВЛЕНИЕ: Исключаем отмененные записи ---
+        const { data } = await _sb
+            .from('appointments')
+            .select('date_time')
+            .eq('master_id', Number(mId))
+            .ilike('date_time', `${dateStr}%`)
+            .neq('status', 'cancelled'); // <--- ВАЖНО: Игнорируем статус 'cancelled'
+
         loader.style.display = "none";
 
         let busyTimes = (data || []).map(item => item.date_time.split(' ')[1]);
@@ -249,6 +251,3 @@
     }
 
     init();
-</script>
-</body>
-</html>

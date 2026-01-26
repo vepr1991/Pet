@@ -37,7 +37,6 @@
             </datalist>
 
             <input type="number" id="srv-price" placeholder="Цена (₸)">
-
             <input type="text" id="srv-desc" placeholder="Описание (что входит в услугу)">
             <input type="text" id="srv-image" placeholder="Ссылка на фото (https://...)">
 
@@ -81,10 +80,13 @@
         async function loadAppts() {
             const list = document.getElementById('appts-list');
             list.innerHTML = '<div style="text-align:center; padding:20px; color:#999">Загрузка...</div>';
-            const { data } = await _sb.from('appointments').select('*').eq('master_id', mId);
 
+            const { data, error } = await _sb.from('appointments').select('*').eq('master_id', mId);
+
+            if (error) { list.innerHTML = `<div style="text-align:center; color:red">Ошибка БД</div>`; return; }
             if (!data || data.length === 0) { list.innerHTML = `<div style="text-align:center; margin-top:40px; color:#999;">📭 Пока нет записей</div>`; return; }
 
+            // Парсинг дат
             data.forEach(item => {
                 try {
                     const [dPart, tPart] = item.date_time.split(' ');
@@ -95,14 +97,21 @@
             });
 
             const now = new Date();
-            const future = data.filter(i => i._jsDate >= now).sort((a,b) => a._jsDate - b._jsDate);
-            const past = data.filter(i => i._jsDate < now).sort((a,b) => b._jsDate - a._jsDate);
+
+            // --- НОВАЯ ЛОГИКА ФИЛЬТРАЦИИ ---
+            // Future: Будущее И статус НЕ отменен
+            const future = data.filter(i => i._jsDate >= now && i.status !== 'cancelled').sort((a,b) => a._jsDate - b._jsDate);
+
+            // Archive: Прошлое ИЛИ статус отменен
+            const archive = data.filter(i => i._jsDate < now || i.status === 'cancelled').sort((a,b) => b._jsDate - a._jsDate);
+            // -------------------------------
 
             list.innerHTML = '';
 
-            const renderItem = (a, isPast) => {
+            const renderItem = (a, isArchive) => {
                 const div = document.createElement('div');
-                div.className = `card appt-card ${isPast ? 'past' : ''}`;
+                div.className = `card appt-card ${isArchive ? 'past' : ''}`;
+
                 const client = a.client_name || 'Клиент';
                 const breed = a.breed || 'Питомец';
                 const petName = a.pet_name ? `(${a.pet_name})` : '';
@@ -110,17 +119,34 @@
                 const userId = a.user_id ? String(a.user_id) : '';
                 const username = a.username ? String(a.username) : '';
 
+                // Проверяем статус для отображения
+                const isCancelled = a.status === 'cancelled';
+                const statusLabel = isCancelled
+                    ? '<span style="color:var(--danger); font-weight:bold;">❌ Отменено</span>'
+                    : (isArchive ? '🏁 Завершен' : '📅');
+
+                // Кнопку удаления показываем только если запись НЕ отменена (чтобы два раза не удалять)
+                const deleteBtnHtml = !isCancelled
+                    ? `<button class="btn-appt-del" onclick="askDeleteAppt(${a.id})">🗑</button>`
+                    : '';
+
                 div.innerHTML = `
-                    <button class="btn-appt-del" onclick="askDeleteAppt(${a.id})">🗑</button>
-                    <div class="appt-time">${isPast ? '🏁' : '📅'} ${a.date_time}</div>
-                    <div class="client-name">👤 ${client}</div>
+                    ${deleteBtnHtml}
+                    <div class="appt-time">
+                        ${statusLabel} ${a.date_time}
+                    </div>
+                    <div class="client-name" style="${isCancelled ? 'text-decoration:line-through; color:#999;' : ''}">👤 ${client}</div>
                     <div class="info-row">🐶 ${breed} ${petName}</div>
                     <div class="info-row">✂️ ${a.service}</div>
-                    ${!isPast ? `<div class="copy-phone-btn" onclick="copyPhone('${phone}')">📞 ${phone}</div><div onclick="openChat('${userId}', '${username}')" class="btn-write">💬 Написать</div>` : ''}
+                    ${!isArchive && !isCancelled ? `
+                    <div class="copy-phone-btn" onclick="copyPhone('${phone}')">📞 ${phone} <span class="copy-icon">📋</span></div>
+                    <div onclick="openChat('${userId}', '${username}')" class="btn-write">💬 Написать в Telegram</div>
+                    ` : ''}
                 `;
                 return div;
             };
 
+            // Рендер Актуальных
             if (future.length > 0) {
                 let lastDate = '';
                 future.forEach(a => {
@@ -136,33 +162,34 @@
                 });
             } else { list.innerHTML += `<div style="text-align:center; padding:20px; color:#aaa">Нет актуальных записей</div>`; }
 
-            if (past.length > 0) {
+            // Рендер Архива
+            if (archive.length > 0) {
                 const archiveContainer = document.createElement('div');
                 archiveContainer.className = 'archive-container';
                 const btn = document.createElement('div');
                 btn.className = 'archive-btn';
                 btn.onclick = function() { this.classList.toggle('open'); this.nextElementSibling.classList.toggle('show'); };
-                btn.innerHTML = `<span>🗄 Архив (${past.length})</span> <span class="archive-arrow">▼</span>`;
+                btn.innerHTML = `<span>🗄 Архив / Отмены (${archive.length})</span> <span class="archive-arrow">▼</span>`;
+
                 const arcList = document.createElement('div');
                 arcList.className = 'archive-list';
-                past.forEach(a => arcList.appendChild(renderItem(a, true)));
+                archive.forEach(a => arcList.appendChild(renderItem(a, true)));
+
                 archiveContainer.appendChild(btn); archiveContainer.appendChild(arcList);
                 list.appendChild(archiveContainer);
             }
         }
 
-        // --- УПРАВЛЕНИЕ УСЛУГАМИ (ОБНОВЛЕНО) ---
+        // --- УПРАВЛЕНИЕ УСЛУГАМИ ---
         async function loadServices() {
             const list = document.getElementById('services-list');
             const { data } = await _sb.from('services').select('*').eq('master_id', mId).order('category', { ascending: true });
-
             if (!data || data.length === 0) { list.innerHTML = '<div style="padding:20px; text-align:center; color:#999">Список пуст</div>'; return; }
             list.innerHTML = '';
 
             data.forEach(s => {
                 const div = document.createElement('div');
                 div.className = 'service-row';
-                // Отображаем категорию мелким шрифтом над названием
                 div.innerHTML = `
                     <div style="flex:1;">
                         <div style="font-size:10px; color:#888; text-transform:uppercase; margin-bottom:2px;">${s.category || 'Без категории'}</div>
@@ -186,48 +213,51 @@
             if (!name || !price) return tg.showAlert("Название и цена обязательны");
 
             await _sb.from('services').insert([{
-                master_id: mId,
-                name: name,
-                category: category,
-                price: Number(price),
-                description: desc,
-                image_url: img
+                master_id: mId, name: name, category: category,
+                price: Number(price), description: desc, image_url: img
             }]);
 
-            // Очистка полей
-            document.getElementById('srv-name').value = '';
-            document.getElementById('srv-price').value = '';
-            document.getElementById('srv-desc').value = '';
-            document.getElementById('srv-image').value = '';
-
+            document.getElementById('srv-name').value = ''; document.getElementById('srv-price').value = '';
+            document.getElementById('srv-desc').value = ''; document.getElementById('srv-image').value = '';
             await loadServices();
         }
 
-        // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-        function copyPhone(phone) { navigator.clipboard.writeText(phone).then(() => { tg.showAlert("Скопировано"); }); }
-
-        function openChat(userId, username) {
-            if (username && username !== '' && username !== 'null') tg.openTelegramLink(`https://t.me/${username.replace('@', '')}`);
-            else if (userId) tg.openTelegramLink(`tg://user?id=${userId}`);
-            else tg.showAlert("Нет контакта");
-        }
-
+        // --- ЛОГИКА УДАЛЕНИЯ (ОБНОВЛЕНА: Soft Delete) ---
         function askDeleteService(id) { deleteId = id; deleteTarget = 'service'; document.getElementById('modal-text').innerText = "Удалить услугу?"; document.getElementById('custom-modal').style.display = 'flex'; }
         function askDeleteAppt(id) { deleteId = id; deleteTarget = 'appt'; document.getElementById('modal-text').innerText = "Отменить запись?"; document.getElementById('custom-modal').style.display = 'flex'; }
         function closeModal() { document.getElementById('custom-modal').style.display = 'none'; deleteId = null; }
 
         async function confirmDelete() {
             if (!deleteId) return;
-            if (deleteTarget === 'service') { await _sb.from('services').delete().eq('id', deleteId); await loadServices(); }
-            else { await _sb.from('appointments').delete().eq('id', deleteId); await loadAppts(); }
+            const yesBtn = document.querySelector('.m-yes');
+            yesBtn.innerText = "⏳..."; yesBtn.disabled = true;
+
+            if (deleteTarget === 'service') {
+                // Услуги удаляем насовсем (Hard Delete)
+                await _sb.from('services').delete().eq('id', deleteId);
+                await loadServices();
+            }
+            else if (deleteTarget === 'appt') {
+                // Записи НЕ удаляем, а меняем статус (Soft Delete)
+                const { error } = await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', deleteId);
+                if(error) tg.showAlert("Ошибка: " + error.message);
+                await loadAppts();
+            }
+
+            yesBtn.innerText = "Да, удалить"; yesBtn.disabled = false;
             closeModal();
         }
 
+        function copyPhone(phone) { navigator.clipboard.writeText(phone).then(() => { tg.showAlert("Скопировано"); }); }
+        function openChat(userId, username) {
+            if (username && username !== '' && username !== 'null') tg.openTelegramLink(`https://t.me/${username.replace('@', '')}`);
+            else if (userId) tg.openTelegramLink(`tg://user?id=${userId}`);
+            else tg.showAlert("Нет контакта");
+        }
         function showTab(id, el) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            el.classList.add('active');
+            document.getElementById(id).classList.add('active'); el.classList.add('active');
         }
 
         init();
