@@ -14,8 +14,6 @@ export function renderApptsList(container, appointments, actions) {
 
     const now = new Date();
 
-    // --- ГЛАВНАЯ ЛОГИКА ФИЛЬТРАЦИИ ---
-
     // Актуальные: Дата в будущем И статус НЕ cancelled
     const future = appointments.filter(i =>
         i._jsDate >= now && i.status !== 'cancelled'

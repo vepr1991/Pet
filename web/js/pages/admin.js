@@ -81,7 +81,7 @@ async function addService() {
 }
 
 function askDelete(id, type) {
-    const text = type === 'service' ? "Удалить услугу навсегда?" : "Отменить запись (в архив)?";
+    const text = type === 'service' ? "Удалить услугу?" : "Отменить запись (в архив)?";
 
     showConfirmModal(text, async () => {
         let error = null;
@@ -100,14 +100,17 @@ function askDelete(id, type) {
                 .from('appointments')
                 .update({ status: 'cancelled' })
                 .eq('id', cleanId);
+                .select();
 
             error = res.error;
-            if (!error) await loadAppts();
-        }
 
-        if (error) {
-            console.error("DB Error:", error);
-            showAlert("❌ Ошибка: " + error.message);
+            // ОТЛАДКА: Проверяем, действительно ли что-то обновилось
+            if (!error && (!res.data || res.data.length === 0)) {
+                console.error("Запрос прошел, но запись не обновлена. Возможно, ID не совпал или RLS блокирует.");
+                alert("⚠️ Ошибка: База данных не нашла эту запись для обновления.");
+            } else if (!error) {
+                // Если всё ок - обновляем список
+                await loadAppts();
         }
     });
 }
