@@ -8,23 +8,19 @@ export function renderApptsList(container, appointments, actions) {
 
     // Подготовка дат
     appointments.forEach(item => {
-        // Если даты нет, ставим старую, чтобы ушло в архив
         item._jsDate = item.date_time ? parseDateTime(item.date_time) : new Date(0);
     });
 
     const now = new Date();
 
-    // Актуальные: Дата в будущем И статус НЕ cancelled
+    // Разделение на Актуальные и Архив
     const future = appointments.filter(i =>
         i._jsDate >= now && i.status !== 'cancelled'
     ).sort((a,b) => a._jsDate - b._jsDate);
 
-    // Архив: Дата в прошлом ИЛИ статус cancelled
     const archive = appointments.filter(i =>
         i._jsDate < now || i.status === 'cancelled'
     ).sort((a,b) => b._jsDate - a._jsDate);
-
-    // ---------------------------------
 
     container.innerHTML = '';
 
@@ -35,28 +31,22 @@ export function renderApptsList(container, appointments, actions) {
         container.innerHTML += `<div style="text-align:center; padding:20px; color:#aaa">Нет актуальных записей</div>`;
     }
 
-    // 2. Рендер Архива (Аккордеон)
+    // 2. Рендер Архива
     if (archive.length > 0) {
         const archiveContainer = document.createElement('div');
         archiveContainer.className = 'archive-container';
 
         const btn = document.createElement('div');
         btn.className = 'archive-btn';
-        // При клике переключаем класс open у кнопки и show у списка
         btn.onclick = function() {
             this.classList.toggle('open');
             const list = this.nextElementSibling;
-            if (list.style.display === "block") {
-                list.style.display = "none";
-            } else {
-                list.style.display = "block";
-            }
+            list.style.display = list.style.display === "block" ? "none" : "block";
         };
         btn.innerHTML = `<span>🗄 Архив (${archive.length})</span> <span class="archive-arrow">▼</span>`;
 
         const arcList = document.createElement('div');
         arcList.className = 'archive-list';
-        // По умолчанию скрыто
         arcList.style.display = "none";
 
         archive.forEach(a => arcList.appendChild(createApptCard(a, true, actions)));
@@ -69,33 +59,27 @@ export function renderApptsList(container, appointments, actions) {
 
 function createApptCard(a, isArchive, actions) {
     const div = document.createElement('div');
-    // Если статус cancelled, добавляем класс past (чтобы стало серым)
     const isCancelled = a.status === 'cancelled';
     div.className = `card appt-card ${isArchive || isCancelled ? 'past' : ''}`;
 
     let statusLabel = isArchive ? '🏁' : '📅';
     if (isCancelled) statusLabel = '<span style="color:red">❌ Отменено</span>';
 
-    // Кнопка удаления (только для АКТИВНЫХ и НЕ отмененных)
-    // Если запись в архиве или уже отменена - кнопку удаления не показываем
-// Кнопка удаления (только для АКТИВНЫХ и НЕ отмененных)
+    // Кнопка удаления (КОРЗИНА)
+    // Показываем только если запись НЕ в архиве и НЕ отменена
     if (!isCancelled && !isArchive && actions.onDelete) {
         const delBtn = document.createElement('button');
         delBtn.className = 'btn-appt-del';
         delBtn.innerText = '🗑';
 
         delBtn.onclick = (e) => {
-            e.stopPropagation(); // Чтобы клик не ушел на карточку
-
-            // ВРЕМЕННАЯ ПРОВЕРКА: Если это окно появится, значит кнопка работает
-            // alert("Клик прошел по ID: " + a.id);
-
+            e.stopPropagation();
+            // alert("Удаляем ID: " + a.id); // Для отладки можно раскомментировать
             actions.onDelete(a.id);
         };
         div.appendChild(delBtn);
     }
 
-    // HTML контент
     div.innerHTML += `
         <div class="appt-time">${statusLabel} ${a.date_time}</div>
         <div class="client-name" style="${isCancelled ? 'text-decoration:line-through;color:#999':''}">👤 ${a.client_name || 'Клиент'}</div>
@@ -104,7 +88,7 @@ function createApptCard(a, isArchive, actions) {
         <div class="info-row" style="font-size:12px; margin-top:4px;">📞 ${a.phone}</div>
     `;
 
-    // Кнопка копирования телефона (если активная запись)
+    // Кнопка звонка
     if (!isArchive && !isCancelled && actions.onCopyPhone) {
         const phoneBtn = document.createElement('div');
         phoneBtn.className = 'copy-phone-btn';

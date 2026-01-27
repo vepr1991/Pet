@@ -49,8 +49,6 @@ async function loadAppts() {
 
 async function loadServices() {
     const list = document.getElementById('services-list');
-
-    // ИЗМЕНЕНИЕ: Убрали .eq('is_active', true), так как удаляем насовсем
     const { data } = await _sb
         .from('services')
         .select('*')
@@ -70,7 +68,6 @@ async function addService() {
 
     if(!name || !price) return showAlert("Нужно название и цена");
 
-    // ИЗМЕНЕНИЕ: Убрали is_active из insert
     await _sb.from('services').insert([{
         master_id: mId, name, category: cat, price: Number(price),
         duration: Number(duration), description: desc, image_url: img
@@ -87,35 +84,41 @@ function askDelete(id, type) {
         let error = null;
 
         if (type === 'service') {
-            // ЛОГИКА 1: УСЛУГИ - УДАЛЯЕМ НАСОВСЕМ (HARD DELETE)
+            // ЛОГИКА 1: УСЛУГИ - HARD DELETE
             const res = await _sb.from('services').delete().eq('id', id);
             error = res.error;
             if (!error) await loadServices();
 
         } else {
-            // ЛОГИКА 2: ЗАПИСИ - В АРХИВ (SOFT DELETE)
-            const cleanId = Number(id); // Важно: ID должен быть числом
+            // ЛОГИКА 2: ЗАПИСИ - SOFT DELETE
+            const cleanId = Number(id);
 
+            // ИСПРАВЛЕНО: Убрана лишняя точка с запятой перед .select()
             const res = await _sb
                 .from('appointments')
                 .update({ status: 'cancelled' })
-                .eq('id', cleanId);
+                .eq('id', cleanId)
                 .select();
 
             error = res.error;
 
-            // ОТЛАДКА: Проверяем, действительно ли что-то обновилось
             if (!error && (!res.data || res.data.length === 0)) {
-                console.error("Запрос прошел, но запись не обновлена. Возможно, ID не совпал или RLS блокирует.");
-                alert("⚠️ Ошибка: База данных не нашла эту запись для обновления.");
+                // Если select ничего не вернул, значит запись не обновилась
+                console.error("Запрос прошел, но запись не найдена или заблокирована.");
+                alert("⚠️ Ошибка обновления. Проверьте права доступа.");
             } else if (!error) {
-                // Если всё ок - обновляем список
                 await loadAppts();
+            }
+        }
+
+        if (error) {
+            console.error("DB Error:", error);
+            showAlert("❌ Ошибка: " + error.message);
         }
     });
 }
 
-// ... (остальные функции saveProfile, updatePreview, showTab без изменений) ...
+// Функции для HTML
 async function saveProfile() {
     const name = document.getElementById('pf-name').value;
     const address = document.getElementById('pf-address').value;
@@ -154,10 +157,12 @@ function showTab(id, el) {
     el.classList.add('active');
 }
 
+// Экспорт в глобальную область
 window.refreshData = refreshData;
 window.addService = addService;
 window.saveProfile = saveProfile;
 window.updatePreview = updatePreview;
 window.showTab = showTab;
 
+// Запуск
 init();
