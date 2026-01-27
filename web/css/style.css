@@ -170,12 +170,12 @@ textarea {
 
 /* Кнопка удаления записи (КОРЗИНА) */
 .btn-appt-del {
+    /* --- СТАРЫЙ ВИЗУАЛ (как ты хотел) --- */
     position: absolute;
     top: 12px;
     right: 12px;
     width: 34px !important;
     height: 34px !important;
-    min-width: 34px;
     border-radius: 50%;
     background: var(--danger-soft);
     color: var(--danger);
@@ -184,15 +184,21 @@ textarea {
     align-items: center;
     justify-content: center;
     font-size: 16px;
-    cursor: pointer;
-    transition: var(--transition);
     padding: 0;
 
-    /* --- КРИТИЧЕСКИ ВАЖНО ДЛЯ КЛИКА --- */
-    z-index: 100 !important; /* Поднимаем кнопку над текстом */
-    pointer-events: auto;    /* Гарантируем, что она ловит клики */
+    /* --- ТЕХНИЧЕСКИЙ ФИКС КЛИКА --- */
+    cursor: pointer;
+    z-index: 9999 !important;       /* Поднимаем на самый верх */
+    pointer-events: auto !important; /* Принудительно разрешаем клики */
+    touch-action: manipulation;      /* Убираем задержку на мобилках */
 }
-.btn-appt-del:active { background: var(--danger); color: #fff; transform: scale(0.9); }
+
+/* Эффект нажатия */
+.btn-appt-del:active {
+    background: var(--danger);
+    color: #fff;
+    transform: scale(0.9);
+}
 
 .appt-time { color: var(--accent); font-weight: 600; font-size: 14px; }
 .client-name { font-size: 17px; font-weight: 600; margin-top: 2px;}

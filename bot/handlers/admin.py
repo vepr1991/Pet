@@ -17,49 +17,66 @@ async def view_appointments(message: types.Message):
         await message.answer("❌ У вас нет доступа к этому разделу.")
         return
 
-    # ЛОГИКА ФИЛЬТРАЦИИ: Админ видит всё, мастер — только своё
+    # Загружаем данные
     if is_admin:
-        await message.answer("🌐 <b>Режим Глобального Админа</b>\nОтображаются последние 10 записей всей системы:",
-                             parse_mode="HTML")
-        rows = db.get_last_appointments(10)  # Глобальный поиск
+        await message.answer("🌐 <b>Все последние записи (Админ):</b>", parse_mode="HTML")
+        rows = db.get_last_appointments(10)
     else:
-        await message.answer(f"🏠 <b>Записи вашей студии</b>\nОтображаются последние 10 записей:", parse_mode="HTML")
-        rows = db.get_appointments_by_master(u_id, 10)  # Поиск по master_id
+        await message.answer(f"🏠 <b>Ваши последние записи:</b>", parse_mode="HTML")
+        rows = db.get_appointments_by_master(u_id, 10)
 
     if rows:
-        for index, r in enumerate(rows, start=1):
-            # Распаковка данных (db_id, breed, name, serv, dt, phone, client_id, m_id)
-            # Убедись, что твоя функция в БД возвращает именно такой набор колонок
-            db_id, breed, name, serv, dt, phone, client_id = r[:7]
+        for r in rows:
+            # ВАЖНО: Распаковываем 10 элементов, включая STATUS
+            # Если падает ошибка, проверь requests.py (функция get_appointments_by_master должна возвращать status)
+            db_id, breed, name, serv, dt, phone, client_id, client_name, username, status = r
 
-            text = (f"📍 <b>Запись №{db_id}</b>\n"
-                    f"🐶 <b>{breed} {name}</b>\n"
+            # Проверяем статус
+            is_cancelled = (status == 'cancelled')
+
+            # Если отменена - меняем иконку и зачеркиваем
+            status_icon = "❌ ОТМЕНЕНО" if is_cancelled else "✅ Активна"
+            pet_display = f"<s>{breed} {name}</s>" if is_cancelled else f"<b>{breed} {name}</b>"
+
+            text = (f"📍 <b>Запись №{db_id}</b> [{status_icon}]\n"
+                    f"🐶 {pet_display}\n"
                     f"✂️ {serv}\n"
                     f"📅 {dt}\n"
                     f"📞 {phone}")
 
-            # Кнопки управления
-            kb_inline = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="💬 Написать клиенту", url=f"tg://user?id={client_id}"),
-                InlineKeyboardButton(text="❌ Удалить", callback_data=f"delete_{db_id}")
-            ]])
+            # Кнопки
+            buttons = []
+            if client_id:
+                buttons.append(InlineKeyboardButton(text="💬 Клиент", url=f"tg://user?id={client_id}"))
+
+            # Кнопку "Отменить" показываем ТОЛЬКО если запись еще активна
+            if not is_cancelled:
+                buttons.append(InlineKeyboardButton(text="🗑 Отменить", callback_data=f"delete_{db_id}"))
+
+            kb_inline = InlineKeyboardMarkup(inline_keyboard=[buttons])
 
             await message.answer(text, parse_mode="HTML", reply_markup=kb_inline)
     else:
         await message.answer("📭 Записей пока нет.")
 
 
-# Безопасное удаление
+# Обработка кнопки "Отменить"
 @router.callback_query(F.data.startswith("delete_"))
 async def delete_callback(callback: CallbackQuery):
     u_id = callback.from_user.id
     appointment_id = int(callback.data.split("_")[1])
 
-    # Проверяем, имеет ли право этот человек удалять запись
-    # (Админ может всё, мастер — только если запись принадлежит ему)
     if u_id == ADMIN_ID or db.is_owner_of_appointment(u_id, appointment_id):
-        db.delete_appointment(appointment_id)
-        await callback.message.edit_text(f"✅ Запись №{appointment_id} удалена из базы.")
-        await callback.answer("Удалено")
+        # Вызываем функцию отмены (Soft Delete)
+        success = db.delete_appointment(appointment_id)
+
+        if success:
+            await callback.message.edit_text(
+                f"❌ <b>Запись №{appointment_id} отменена и перенесена в архив.</b>",
+                parse_mode="HTML"
+            )
+            await callback.answer("Готово")
+        else:
+            await callback.answer("Ошибка базы данных", show_alert=True)
     else:
-        await callback.answer("⛔ Ошибка доступа: это не ваша запись!", show_alert=True)
+        await callback.answer("⛔ Это не ваша запись!", show_alert=True)

@@ -70,7 +70,6 @@ function createApptCard(a, isArchive, actions) {
     let statusLabel = isArchive ? '🏁' : '📅';
     if (isCancelled) statusLabel = '<span style="color:red">❌ Отменено</span>';
 
-    // --- КНОПКА УДАЛЕНИЯ (КОРЗИНА) ---
     // Показываем ТОЛЬКО если запись не отменена и не в архиве
     if (!isCancelled && !isArchive && actions.onDelete) {
         const delBtn = document.createElement('button');
