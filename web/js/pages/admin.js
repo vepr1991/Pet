@@ -7,13 +7,9 @@ import { initModal, showConfirmModal } from '../ui/modal.js';
 
 let mId = null;
 
-// --- ИНИЦИАЛИЗАЦИЯ ---
 async function init() {
     mId = getMasterId();
-    if (!mId) {
-        document.body.innerHTML = "<div style='padding:50px; text-align:center;'>⚠️ ID мастера не найден.</div>";
-        return;
-    }
+    if (!mId) return document.body.innerHTML = "⚠️ ID мастера не найден.";
     initModal();
     await refreshData();
 }
@@ -22,18 +18,14 @@ async function refreshData() {
     await Promise.all([loadMaster(), loadAppts(), loadServices()]);
 }
 
-// --- ЗАГРУЗКА ДАННЫХ ---
 async function loadMaster() {
     const { data } = await _sb.from('masters').select('*').eq('telegram_id', mId).single();
     if (data) {
         document.getElementById('header-studio-name').innerText = data.studio_name || 'Студия';
-
-        // Заполняем поля профиля
         document.getElementById('pf-name').value = data.studio_name || '';
         document.getElementById('pf-address').value = data.address || '';
         document.getElementById('pf-about').value = data.about_text || '';
         document.getElementById('pf-photo').value = data.photo_url || '';
-
         updatePreview(data.photo_url);
     }
 }
@@ -57,18 +49,17 @@ async function loadAppts() {
 
 async function loadServices() {
     const list = document.getElementById('services-list');
-    // ИСПРАВЛЕНИЕ: Загружаем только АКТИВНЫЕ услуги
+
+    // ИЗМЕНЕНИЕ: Убрали .eq('is_active', true), так как удаляем насовсем
     const { data } = await _sb
         .from('services')
         .select('*')
         .eq('master_id', mId)
-        .eq('is_active', true)
         .order('category');
 
     renderAdminServices(list, data, (id) => askDelete(id, 'service'));
 }
 
-// --- ДЕЙСТВИЯ ---
 async function addService() {
     const name = document.getElementById('srv-name').value;
     const cat = document.getElementById('srv-category').value || 'Основное';
@@ -79,11 +70,10 @@ async function addService() {
 
     if(!name || !price) return showAlert("Нужно название и цена");
 
-    // При создании ставим is_active: true
+    // ИЗМЕНЕНИЕ: Убрали is_active из insert
     await _sb.from('services').insert([{
         master_id: mId, name, category: cat, price: Number(price),
-        duration: Number(duration), description: desc, image_url: img,
-        is_active: true
+        duration: Number(duration), description: desc, image_url: img
     }]);
 
     document.querySelectorAll('#tab-services input').forEach(i => i.value = '');
@@ -91,40 +81,38 @@ async function addService() {
 }
 
 function askDelete(id, type) {
-    const text = type === 'service' ? "Удалить услугу?" : "Отменить запись?";
+    const text = type === 'service' ? "Удалить услугу навсегда?" : "Отменить запись (в архив)?";
 
     showConfirmModal(text, async () => {
         let error = null;
 
         if (type === 'service') {
-            // Удаление услуги (скрытие через soft delete)
-            const res = await _sb.from('services').update({ is_active: false }).eq('id', id);
+            // ЛОГИКА 1: УСЛУГИ - УДАЛЯЕМ НАСОВСЕМ (HARD DELETE)
+            const res = await _sb.from('services').delete().eq('id', id);
             error = res.error;
             if (!error) await loadServices();
+
         } else {
-            // --- ОТМЕНА ЗАПИСИ ---
+            // ЛОГИКА 2: ЗАПИСИ - В АРХИВ (SOFT DELETE)
+            const cleanId = Number(id); // Важно: ID должен быть числом
 
-            // 1. Приводим ID к числу, чтобы база точно поняла
-            const cleanId = Number(id);
-
-            // 2. Ставим статус 'cancelled'
             const res = await _sb
                 .from('appointments')
                 .update({ status: 'cancelled' })
                 .eq('id', cleanId);
 
             error = res.error;
-
             if (!error) await loadAppts();
         }
 
         if (error) {
-            console.error("Ошибка Базы данных:", error);
+            console.error("DB Error:", error);
             showAlert("❌ Ошибка: " + error.message);
         }
     });
 }
 
+// ... (остальные функции saveProfile, updatePreview, showTab без изменений) ...
 async function saveProfile() {
     const name = document.getElementById('pf-name').value;
     const address = document.getElementById('pf-address').value;
@@ -138,19 +126,12 @@ async function saveProfile() {
     btn.innerText = "Сохранение..."; btn.disabled = true;
 
     const { error } = await _sb.from('masters').update({
-        studio_name: name,
-        address: address,
-        about_text: about,
-        photo_url: photo
+        studio_name: name, address, about_text: about, photo_url: photo
     }).eq('telegram_id', mId);
 
     btn.innerText = oldText; btn.disabled = false;
-
-    if (error) showAlert("Ошибка: " + error.message);
-    else {
-        showAlert("✅ Профиль сохранен!");
-        loadMaster();
-    }
+    if (error) showAlert(error.message);
+    else { showAlert("✅ Сохранено"); loadMaster(); }
 }
 
 function updatePreview(url) {
@@ -170,7 +151,6 @@ function showTab(id, el) {
     el.classList.add('active');
 }
 
-// Экспорт функций для HTML
 window.refreshData = refreshData;
 window.addService = addService;
 window.saveProfile = saveProfile;

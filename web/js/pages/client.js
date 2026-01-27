@@ -31,7 +31,6 @@ async function init() {
         .from('services')
         .select('*')
         .eq('master_id', mId)
-        .eq('is_active', true);
     allServices = srv || [];
 
     // Рендер категорий и календаря
