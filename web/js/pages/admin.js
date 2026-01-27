@@ -92,15 +92,28 @@ async function addService() {
 
 function askDelete(id, type) {
     const text = type === 'service' ? "Удалить услугу?" : "Отменить запись?";
+
     showConfirmModal(text, async () => {
+        let error = null;
+
         if (type === 'service') {
-            // ИСПРАВЛЕНИЕ: Не удаляем, а скрываем (Soft Delete)
-            await _sb.from('services').update({ is_active: false }).eq('id', id);
-            await loadServices();
+            // Пытаемся скрыть услугу
+            const res = await _sb.from('services').update({ is_active: false }).eq('id', id);
+            error = res.error;
+
+            if (!error) await loadServices(); // Обновляем список только если нет ошибки
         } else {
-            // Для записей тоже Soft Delete (статус cancelled)
-            await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', id);
-            await loadAppts();
+            // Отменяем запись
+            const res = await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', id);
+            error = res.error;
+
+            if (!error) await loadAppts();
+        }
+
+        // Если Supabase вернул ошибку — показываем её
+        if (error) {
+            console.error("Ошибка Supabase:", error);
+            showAlert("❌ Ошибка: " + error.message);
         }
     });
 }
