@@ -1,26 +1,24 @@
 import { parseDateTime } from '../shared/utils.js';
 
 export function renderApptsList(container, appointments, actions) {
+    console.log("🚀 renderApptsList запущен. Записей:", appointments?.length);
+
     if (!appointments || appointments.length === 0) {
         container.innerHTML = `<div style="text-align:center; margin-top:40px; color:#999;">📭 Пока нет записей</div>`;
         return;
     }
 
-    // Начало сегодняшнего дня для корректной фильтрации
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    // Подготовка дат
     appointments.forEach(item => {
         item._jsDate = item.date_time ? parseDateTime(item.date_time) : new Date(0);
     });
 
-    // 1. АКТИВНЫЕ: Это будущее + сегодня, ЕСЛИ статус не 'cancelled'
     const future = appointments.filter(i =>
         i.status !== 'cancelled' && i._jsDate >= todayStart
     ).sort((a,b) => a._jsDate - b._jsDate);
 
-    // 2. АРХИВ: Это прошлое (вчера) ИЛИ статус 'cancelled'
     const archive = appointments.filter(i =>
         i.status === 'cancelled' || i._jsDate < todayStart
     ).sort((a,b) => b._jsDate - a._jsDate);
@@ -64,21 +62,37 @@ function createApptCard(a, isArchive, actions) {
     const div = document.createElement('div');
     const isCancelled = a.status === 'cancelled';
 
-    // Стиль 'past' (серый) даем только если реально архив или отмена
     div.className = `card appt-card ${isArchive || isCancelled ? 'past' : ''}`;
 
     let statusLabel = isArchive ? '🏁' : '📅';
     if (isCancelled) statusLabel = '<span style="color:red">❌ Отменено</span>';
 
-    // Показываем ТОЛЬКО если запись не отменена и не в архиве
-    if (!isCancelled && !isArchive && actions.onDelete) {
+    // --- ЛОГИКА КНОПКИ УДАЛЕНИЯ ---
+    // Проверяем условия для рендера кнопки
+    const canDelete = !isCancelled && !isArchive && actions.onDelete;
+
+    if (canDelete) {
+        console.log(`➕ Добавляю кнопку удаления для ID: ${a.id}`);
+
         const delBtn = document.createElement('button');
         delBtn.className = 'btn-appt-del';
-        delBtn.innerText = '🗑'; // Иконка
+        delBtn.innerText = '🗑';
 
+        // ВЕШАЕМ ОБРАБОТЧИК С АЛЕРТОМ
         delBtn.onclick = (e) => {
             e.stopPropagation();
-            actions.onDelete(a.id); // Вызов удаления
+            e.preventDefault();
+
+            // ЕСЛИ ТЫ ВИДИШЬ ЭТОТ ALERT - ЗНАЧИТ ФАЙЛ appts.js И style.css РАБОТАЮТ ИДЕАЛЬНО
+            alert(`🛠 DEBUG: Клик по корзине пойман!\nID записи: ${a.id}`);
+
+            console.log(`🔥 Клик по корзине ID: ${a.id}`);
+
+            if (actions.onDelete) {
+                actions.onDelete(a.id);
+            } else {
+                alert("❌ Ошибка: Функция onDelete не передана!");
+            }
         };
         div.appendChild(delBtn);
     }
@@ -91,7 +105,6 @@ function createApptCard(a, isArchive, actions) {
         <div class="info-row" style="font-size:12px; margin-top:4px;">📞 ${a.phone}</div>
     `;
 
-    // Кнопка звонка
     if (!isArchive && !isCancelled && actions.onCopyPhone) {
         const phoneBtn = document.createElement('div');
         phoneBtn.className = 'copy-phone-btn';
