@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Кабинет мастера</title>
-
+    <title>Админка</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="preconnect" href="https://telegram.org">
-
     <link rel="stylesheet" href="css/style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,70 +12,62 @@
 <body>
     <div class="header">
         <div>
-            <div style="font-size:12px; color:#888; font-weight:500;">Кабинет мастера</div>
+            <div style="font-size:12px; color:#888;">Кабинет мастера</div>
             <h2 id="header-title">Загрузка...</h2>
         </div>
-        <button id="btn-refresh" style="background:none; border:none; font-size:18px; cursor:pointer;">🔄</button>
+        <button id="btn-refresh" style="background:none; border:none; font-size:18px;">🔄</button>
     </div>
 
-    <div class="tab-menu" id="tab-menu">
+    <div class="tab-menu">
         <div class="tab active" data-tab="tab-appts">Записи</div>
         <div class="tab" data-tab="tab-services">Услуги</div>
         <div class="tab" data-tab="tab-profile">Профиль</div>
     </div>
 
     <div id="tab-appts" class="section active">
-        <div id="appts-container">
-            <div style="text-align:center; padding:40px; color:#999;">
-                <div style="font-size:24px; margin-bottom:10px;">⏳</div>
-                <div>Загрузка записей...</div>
-            </div>
-        </div>
+        <div id="appts-container"></div>
     </div>
 
     <div id="tab-services" class="section">
         <div class="card">
-            <span class="section-label">Добавить услугу</span>
-            <input type="text" id="srv-name" placeholder="Название">
-            <input type="text" id="srv-category" placeholder="Категория" list="cat-suggestions">
-            <datalist id="cat-suggestions">
-                <option value="Собаки"></option>
-                <option value="Кошки"></option>
-                <option value="Комплекс"></option>
-            </datalist>
-            <div style="display: flex; gap: 10px;">
-                <input type="number" id="srv-price" placeholder="Цена (₸)" style="flex:1">
-                <input type="number" id="srv-duration" placeholder="Мин" value="60" style="width:80px;">
+            <span class="section-label" style="margin-top:0">Добавить услугу</span>
+            <input type="text" id="srv-name" placeholder="Название (напр. Стрижка)">
+            <input type="text" id="srv-category" placeholder="Категория" list="cat-list">
+            <datalist id="cat-list"><option value="Собаки"><option value="Кошки"></datalist>
+
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="srv-price" placeholder="Цена">
+                <input type="number" id="srv-duration" placeholder="Мин" value="60" style="width:80px">
             </div>
-            <textarea id="srv-desc" rows="2" placeholder="Описание" style="width:100%; margin-bottom:10px;"></textarea>
+            <textarea id="srv-desc" rows="2" placeholder="Краткое описание"></textarea>
             <button id="btn-add-service" class="btn">Добавить</button>
         </div>
-        <div id="services-list" class="card"></div>
+
+        <div class="section-label">Список услуг</div>
+        <div id="services-list" class="card" style="min-height:50px"></div>
     </div>
 
     <div id="tab-profile" class="section">
         <div class="card">
-            <div style="text-align:center; margin-bottom:15px;">
-                <img id="preview-avatar" src="" style="width:80px; height:80px; border-radius:50%; background:#eee; object-fit:cover; display:none;">
-                <div id="preview-placeholder" style="width:80px; height:80px; border-radius:50%; background:#eee; margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:26px;">🏠</div>
-            </div>
-            <span class="section-label">Название студии</span>
-            <input type="text" id="pf-name" placeholder="Название студии">
-            <span class="section-label">Адрес</span>
-            <input type="text" id="pf-address" placeholder="Город, Улица">
-            <span class="section-label">О себе</span>
-            <textarea id="pf-about" rows="3" placeholder="Описание..."></textarea>
+            <span class="section-label" style="margin-top:0">Студия</span>
+            <input type="text" id="pf-name" placeholder="Название салона">
 
-            <button id="btn-save-profile" class="btn">Сохранить профиль</button>
+            <span class="section-label">Адрес</span>
+            <input type="text" id="pf-address" placeholder="Адрес">
+
+            <span class="section-label">О себе</span>
+            <textarea id="pf-about" rows="3" placeholder="Пару слов о мастере..."></textarea>
+
+            <button id="btn-save-profile" class="btn">Сохранить</button>
         </div>
     </div>
 
     <div id="custom-modal">
         <div class="modal-box">
-            <div id="modal-text" style="font-size:18px; font-weight:600; margin-bottom:10px;">Подтвердить?</div>
+            <div id="modal-text" style="font-weight:600; margin-bottom:15px;">Вопрос</div>
             <div class="modal-btns">
                 <button class="m-btn m-yes">Да</button>
-                <button class="m-btn m-no">Отмена</button>
+                <button class="m-btn m-no">Нет</button>
             </div>
         </div>
     </div>
