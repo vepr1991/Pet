@@ -74,6 +74,13 @@ function renderServices(cat) {
 }
 
 function updateCalendar() {
+    // 1. Обновляем заголовок (Месяц Год) - ВОТ ЭТОЙ СТРОКИ НЕ ХВАТАЛО
+    document.getElementById('month-label').innerText = new Intl.DateTimeFormat('ru-RU', {
+        month: 'long',
+        year: 'numeric'
+    }).format(currDate);
+
+    // 2. Рисуем сетку дней
     renderCalendar(document.getElementById('calendar'), currDate, (dateStr) => {
         booking.date = dateStr;
         loadBusySlots(dateStr);

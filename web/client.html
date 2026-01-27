@@ -5,36 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="css/style.css">
 
-    <script>
-        window.onerror = function(message, source, lineno, colno, error) {
-            alert("🔥 ОШИБКА:\n" + message + "\n\nФайл: " + source + "\nСтрока: " + lineno);
-        };
-        window.addEventListener('unhandledrejection', function(event) {
-            alert("🔥 ASYNC ОШИБКА:\n" + event.reason);
-        });
-
-        // Проверка загрузки Supabase через 2 секунды
-        setTimeout(() => {
-            if (!window.supabase) alert("⚠️ Библиотека Supabase НЕ загрузилась (window.supabase is undefined). Проверьте интернет или CDN.");
-        }, 2000);
-
-        // Проверка запуска основного скрипта через 3 секунды
-        setTimeout(() => {
-            const status = document.getElementById('studio-name').innerText;
-            if (status === 'Загрузка...') {
-                alert("⚠️ Скрипт js/pages/client.js не стартовал.\nВозможно, файл не найден (404) или папка js/pages отсутствует.");
-            }
-        }, 3000);
-    </script>
-
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="card" id="master-card">
-        <div class="master-profile">
+    <div class="card" id="master-card" style="padding: 12px;"> <div class="master-profile">
             <img id="m-avatar" src="" style="display:none;" class="mp-avatar">
-            <div id="m-placeholder" class="mp-avatar" style="display:flex; align-items:center; justify-content:center; font-size:24px;">🏠</div>
+
             <div class="mp-info">
                 <h2 id="studio-name">Загрузка...</h2>
                 <div id="m-address" class="mp-address" style="display:none;">📍 <span></span></div>

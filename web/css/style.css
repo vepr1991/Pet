@@ -1,46 +1,49 @@
 :root {
-    /* Backgrounds */
-    --bg: #F2F2F7;
-    --card: #FFFFFF;
-    --input-bg: #EFEFF4;
+    /* --- 1. ПЕРЕМЕННЫЕ (ЦВЕТА И РАЗМЕРЫ) --- */
 
-    /* Text Colors */
-    --text: #000000;
-    --muted: #8E8E93;
-    --border: #E5E5EA;
+    /* Фоны */
+    --bg: #F2F2F7;         /* Основной фон страницы (светло-серый) */
+    --card: #FFFFFF;       /* Фон карточек (белый) */
+    --input-bg: #EFEFF4;   /* Фон полей ввода */
 
-    /* Brand Colors */
-    --accent: #007AFF;
-    --accent-soft: rgba(0, 122, 255, 0.12);
-    --danger: #FF3B30;
-    --danger-soft: rgba(255, 59, 48, 0.1);
-    --green: #34C759;
-    --green-soft: rgba(52, 199, 89, 0.12);
+    /* Текст */
+    --text: #000000;       /* Основной цвет текста */
+    --muted: #8E8E93;      /* Цвет вторичного текста (серый) */
+    --border: #E5E5EA;     /* Цвет границ и разделителей */
 
-    /* Dimensions */
-    --r-sm: 10px;
-    --r-md: 16px;
-    --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.04);
-    --transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    /* Брендовые цвета */
+    --accent: #007AFF;     /* Основной синий (как в iOS) */
+    --accent-soft: rgba(0, 122, 255, 0.12); /* Светло-синий фон */
+    --danger: #FF3B30;     /* Красный (для ошибок и удаления) */
+    --danger-soft: rgba(255, 59, 48, 0.1);  /* Светло-красный фон */
+    --green: #34C759;      /* Зеленый (успех) */
+    --green-soft: rgba(52, 199, 89, 0.12);  /* Светло-зеленый фон */
+
+    /* Размеры и тени */
+    --r-sm: 10px;          /* Малое скругление углов */
+    --r-md: 16px;          /* Среднее скругление углов */
+    --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.04); /* Мягкая тень */
+    --transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); /* Плавность анимаций */
 }
 
+/* --- 2. БАЗОВЫЕ НАСТРОЙКИ СТРАНИЦЫ --- */
 body {
     margin: 0;
     padding: 16px;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
-    -webkit-tap-highlight-color: transparent;
-    -webkit-font-smoothing: antialiased;
-    padding-bottom: 60px;
+    -webkit-tap-highlight-color: transparent; /* Убирает синюю подсветку при клике на Android */
+    -webkit-font-smoothing: antialiased;      /* Сглаживание шрифтов */
+    padding-bottom: 60px; /* Отступ снизу, чтобы контент не прилипал к краю */
 }
 
-/* --- Layout --- */
+/* --- 3. ШАПКА И ЗАГОЛОВКИ --- */
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 4px; }
 .header h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
 .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--muted); margin: 20px 0 8px 8px; letter-spacing: 0.5px; }
 
-/* --- Cards --- */
+/* --- 4. КАРТОЧКИ (БЕЛЫЕ БЛОКИ) --- */
 .card {
     background: var(--card);
     border-radius: var(--r-md);
@@ -50,7 +53,48 @@ body {
     box-shadow: var(--shadow-soft);
 }
 
-/* --- Inputs --- */
+/* --- 5. ПРОФИЛЬ МАСТЕРА (НОВОЕ: КОМПАКТНЫЙ ВИД) --- */
+.master-profile {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 0; /* Убрали лишний отступ */
+}
+.mp-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #eee;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.mp-info { flex: 1; }
+.mp-info h2 {
+    margin: 0;
+    font-size: 16px; /* Чуть меньше шрифт */
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text);
+}
+.mp-address {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.mp-about {
+    font-size: 13px;
+    color: var(--text);
+    background: #F2F2F7;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    line-height: 1.3;
+}
+
+/* --- 6. ПОЛЯ ВВОДА (INPUTS) --- */
 input {
     width: 100%;
     padding: 12px 16px;
@@ -62,16 +106,16 @@ input {
     box-sizing: border-box;
     transition: var(--transition);
     color: var(--text);
-    -webkit-appearance: none;
+    -webkit-appearance: none; /* Убирает стили браузера по умолчанию */
 }
 input::placeholder { color: #C7C7CC; }
 input:focus {
     border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 0 4px var(--accent-soft);
+    box-shadow: 0 0 0 4px var(--accent-soft); /* Эффект свечения при фокусе */
 }
 
-/* --- Tabs --- */
+/* --- 7. ВКЛАДКИ (TABS) --- */
 .tab-menu { display: flex; background: #E5E5EA; padding: 3px; border-radius: 12px; margin-bottom: 24px; }
 .tab { flex: 1; text-align: center; padding: 8px; font-size: 13px; font-weight: 600; color: #636366; border-radius: 9px; cursor: pointer; transition: var(--transition); }
 .tab.active { background: #fff; color: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
@@ -85,7 +129,7 @@ input:focus {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- Buttons --- */
+/* --- 8. КНОПКИ (BUTTONS) --- */
 .btn {
     width: 100%; padding: 14px; border: none; border-radius: var(--r-md);
     background: var(--accent); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
@@ -93,6 +137,7 @@ input:focus {
 }
 .btn:active { transform: scale(0.97); opacity: 0.9; }
 
+/* Круглая кнопка удаления (маленькая) */
 .btn-del {
     width: 28px; height: 28px; border-radius: 50%;
     background: var(--danger-soft); color: var(--danger);
@@ -102,13 +147,13 @@ input:focus {
 }
 .btn-del:active { background: var(--danger); color: #fff; }
 
-/* --- Lists --- */
+/* --- 9. СПИСКИ (LISTS) --- */
 .service-row, .service-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 4px; border-bottom: 1px solid var(--border); transition: background 0.2s; }
 .service-item { cursor: pointer; border-bottom: 1px solid var(--border); padding: 14px 8px; border-radius: 8px;}
 .service-item:last-child, .service-row:last-child { border-bottom: none; }
 .service-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
 
-/* Карточка записи (Админка) */
+/* --- 10. КАРТОЧКА ЗАПИСИ (В АДМИНКЕ) --- */
 .appt-card {
     border-left: none;
     position: relative;
@@ -119,7 +164,7 @@ input:focus {
 }
 .appt-card.past { opacity: 0.6; background: #f9f9f9; }
 
-/* Кнопка удаления записи (Админка - исправленная) */
+/* Кнопка удаления записи */
 .btn-appt-del {
     position: absolute;
     top: 12px;
@@ -147,7 +192,7 @@ input:focus {
 .info-row { font-size: 14px; color: #666; }
 .date-header { font-size: 13px; font-weight: 700; color: var(--muted); margin: 24px 0 8px 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* --- Secondary Buttons --- */
+/* Кнопки действий (звонок, чат) */
 .copy-phone-btn, .btn-write {
     padding: 10px; border-radius: 10px;
     text-align: center; font-weight: 500; font-size: 15px;
@@ -160,7 +205,7 @@ input:focus {
 .btn-write { background: var(--green-soft); color: #2da84e; text-decoration: none; }
 .btn-write:active { background: rgba(52, 199, 89, 0.2); transform: scale(0.98); }
 
-/* --- Selection Grid --- */
+/* --- 11. СЕТКА ВЫБОРА ПИТОМЦА --- */
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .select-card {
     border: 1px solid #E5E5EA; background: #fff;
@@ -169,7 +214,7 @@ input:focus {
 }
 .select-card.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15); transform: translateY(-2px); }
 
-/* --- Client UI Extensions (Категории и Карточки) --- */
+/* --- 12. ЭЛЕМЕНТЫ КЛИЕНТА (КАТЕГОРИИ И УСЛУГИ) --- */
 .cat-scroll { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 5px; margin-bottom: 15px; scrollbar-width: none; }
 .cat-scroll::-webkit-scrollbar { display: none; }
 .cat-chip {
@@ -178,6 +223,7 @@ input:focus {
 }
 .cat-chip.active { background: var(--text); color: #fff; border-color: var(--text); }
 
+/* Богатая карточка услуги (с картинкой) */
 .service-card-rich {
     display: flex; gap: 12px; padding: 12px; background: #fff; border-radius: 16px; margin-bottom: 10px;
     box-shadow: var(--shadow-soft); transition: 0.2s; border: 2px solid transparent;
@@ -189,7 +235,7 @@ input:focus {
 .srv-desc { font-size: 12px; color: #666; margin-bottom: 6px; line-height: 1.3; }
 .srv-price { font-weight: 700; color: var(--accent); font-size: 15px; }
 
-/* --- Calendar --- */
+/* --- 13. КАЛЕНДАРЬ --- */
 .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
 
@@ -217,7 +263,7 @@ input:focus {
 .time-slot.busy { background: #F2F2F7; color: #C7C7CC; pointer-events: none; border-color: transparent; }
 .time-slot.past { background: #F9F9F9; color: #E5E5EA; pointer-events: none; border-color: transparent; }
 
-/* --- Archive Accordion --- */
+/* --- 14. АРХИВ (АККОРДЕОН) --- */
 .archive-container { margin-top: 24px; }
 .archive-btn {
     background: #fff; padding: 16px; border-radius: var(--r-md); box-shadow: var(--shadow-soft);
@@ -231,7 +277,7 @@ input:focus {
 .archive-list.show { display: block; }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- Modal --- */
+/* --- 15. МОДАЛЬНОЕ ОКНО --- */
 #custom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 999; }
 .modal-box { background: #fff; padding: 24px; border-radius: 20px; width: 260px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
 .modal-btns { display: flex; gap: 12px; margin-top: 24px; }
@@ -239,7 +285,7 @@ input:focus {
 .m-yes { background: var(--danger); color: #fff; }
 .m-no { background: #F2F2F7; color: #000; }
 
-/* --- Loader Page (index.html) --- */
+/* --- 16. ЭКРАН ЗАГРУЗКИ (index.html) --- */
 .loader-body {
     background: #000;
     color: white;
