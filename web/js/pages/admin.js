@@ -1,164 +1,118 @@
 import { _sb } from '../core/supabase.js';
-import { tg, showAlert } from '../core/tg.js';
-import { getMasterId, copyToClipboard } from '../shared/utils.js';
-import { renderAdminServices } from '../ui/services.js';
+import { tg, showAlert, confirmAction } from '../core/tg.js';
 import { renderApptsList } from '../ui/appts.js';
-import { initModal, showConfirmModal } from '../ui/modal.js';
 
-let mId = null;
+let state = {
+    masterId: null,
+    masterInfo: null,
+    appointments: [],
+    services: []
+};
 
+// --- ИНИЦИАЛИЗАЦИЯ ---
 async function init() {
-    mId = getMasterId();
-    if (!mId) return document.body.innerHTML = "⚠️ ID мастера не найден.";
-    initModal();
-    await refreshData();
-}
+    const params = new URLSearchParams(window.location.search);
 
-async function refreshData() {
-    await Promise.all([loadMaster(), loadAppts(), loadServices()]);
-}
+    // 1. Ищем ID мастера
+    state.masterId = params.get('master_id') || params.get('master') || tg.initDataUnsafe?.user?.id;
 
-async function loadMaster() {
-    const { data } = await _sb.from('masters').select('*').eq('telegram_id', mId).single();
-    if (data) {
-        document.getElementById('header-studio-name').innerText = data.studio_name || 'Студия';
-        document.getElementById('pf-name').value = data.studio_name || '';
-        document.getElementById('pf-address').value = data.address || '';
-        document.getElementById('pf-about').value = data.about_text || '';
-        document.getElementById('pf-photo').value = data.photo_url || '';
-        updatePreview(data.photo_url);
-    }
-}
-
-async function loadAppts() {
-    const list = document.getElementById('appts-list');
-    list.innerHTML = '<div style="text-align:center; padding:20px; color:#999">Загрузка...</div>';
-
-    const { data, error } = await _sb.from('appointments').select('*').eq('master_id', mId);
-
-    if (error) {
-        list.innerHTML = `<div style="text-align:center; color:red">Ошибка: ${error.message}</div>`;
+    if (!state.masterId) {
+        document.body.innerHTML = `<div style="text-align:center; padding:50px;">❌ Ошибка: ID мастера не найден.<br>Перезапустите бота.</div>`;
         return;
     }
 
-    renderApptsList(list, data, {
-        onDelete: (id) => askDelete(id, 'appt'),
-        onCopyPhone: (phone) => copyToClipboard(phone, () => showAlert("Скопировано"))
-    });
-}
+    setupTabs(); // Настраиваем вкладки
+    setupListeners(); // Кнопки сохранить/обновить
 
-async function loadServices() {
-    const list = document.getElementById('services-list');
-    // Услуги: берем все, сортируем по категории
-    const { data } = await _sb
-        .from('services')
-        .select('*')
-        .eq('master_id', mId)
-        .order('category');
-
-    renderAdminServices(list, data, (id) => askDelete(id, 'service'));
-}
-
-async function addService() {
-    const name = document.getElementById('srv-name').value;
-    const cat = document.getElementById('srv-category').value || 'Основное';
-    const price = document.getElementById('srv-price').value;
-    const duration = document.getElementById('srv-duration')?.value || 60;
-    const desc = document.getElementById('srv-desc').value;
-    const img = document.getElementById('srv-image').value;
-
-    if(!name || !price) return showAlert("Нужно название и цена");
-
-    await _sb.from('services').insert([{
-        master_id: mId, name, category: cat, price: Number(price),
-        duration: Number(duration), description: desc, image_url: img
-    }]);
-
-    document.querySelectorAll('#tab-services input').forEach(i => i.value = '');
-    await loadServices();
-}
-
-function askDelete(id, type) {
-    const text = type === 'service' ? "Удалить услугу?" : "Отменить запись (в архив)?";
-
-    showConfirmModal(text, async () => {
-        let error = null;
-
-        if (type === 'service') {
-            // ЛОГИКА 1: УСЛУГИ - УДАЛЯЕМ НАСОВСЕМ (как в старом файле)
-            const res = await _sb.from('services').delete().eq('id', id);
-            error = res.error;
-            if (!error) await loadServices();
-
-        } else {
-            // ЛОГИКА 2: ЗАПИСИ - В АРХИВ (как в старом файле)
-            const cleanId = Number(id);
-
-            // Меняем статус на cancelled
-            const res = await _sb
-                .from('appointments')
-                .update({ status: 'cancelled' })
-                .eq('id', cleanId)
-                .select(); // Вернет обновленную запись для проверки
-
-            error = res.error;
-
-            // Если ошибок нет - обновляем список
-            if (!error) {
-                await loadAppts();
-            }
-        }
-
-        if (error) {
-            console.error("DB Error:", error);
-            showAlert("❌ Ошибка: " + error.message);
-        }
-    });
-}
-
-// Функции профиля и вкладок
-async function saveProfile() {
-    const name = document.getElementById('pf-name').value;
-    const address = document.getElementById('pf-address').value;
-    const about = document.getElementById('pf-about').value;
-    const photo = document.getElementById('pf-photo').value;
-
-    if(!name) return showAlert("Название студии обязательно!");
-
-    const btn = document.querySelector('#tab-profile .btn');
-    const oldText = btn.innerText;
-    btn.innerText = "Сохранение..."; btn.disabled = true;
-
-    const { error } = await _sb.from('masters').update({
-        studio_name: name, address, about_text: about, photo_url: photo
-    }).eq('telegram_id', mId);
-
-    btn.innerText = oldText; btn.disabled = false;
-    if (error) showAlert(error.message);
-    else { showAlert("✅ Сохранено"); loadMaster(); }
-}
-
-function updatePreview(url) {
-    const img = document.getElementById('preview-avatar');
-    const ph = document.getElementById('preview-placeholder');
-    if (url && url.length > 5) {
-        img.src = url; img.style.display = 'block'; ph.style.display = 'none';
-    } else {
-        img.style.display = 'none'; ph.style.display = 'flex';
+    try {
+        await loadData();
+    } catch (e) {
+        console.error(e);
+        document.getElementById('header-title').innerText = "Ошибка";
+        showAlert(`Ошибка загрузки: ${e.message}`);
     }
 }
 
-function showTab(id, el) {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    el.classList.add('active');
+// --- ЛОГИКА ВКЛАДОК ---
+function setupTabs() {
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Убираем активный класс у всех
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+
+            // Добавляем текущему
+            tab.classList.add('active');
+            const sectionId = tab.getAttribute('data-tab');
+            document.getElementById(sectionId).classList.add('active');
+        });
+    });
 }
 
-window.refreshData = refreshData;
-window.addService = addService;
-window.saveProfile = saveProfile;
-window.updatePreview = updatePreview;
-window.showTab = showTab;
+function setupListeners() {
+    document.getElementById('btn-refresh')?.addEventListener('click', loadData);
+    // Тут можно добавить слушатели для "Добавить услугу" и "Сохранить профиль"
+}
+
+// --- ЗАГРУЗКА ДАННЫХ ---
+async function loadData() {
+    // Ставим спиннер
+    const container = document.getElementById('appts-container');
+    if(container) container.innerHTML = '<div style="text-align:center;padding:20px;color:#999">⏳ Обновление...</div>';
+
+    // Параллельная загрузка
+    const [mResult, aResult, sResult] = await Promise.all([
+        _sb.from('masters').select('*').eq('telegram_id', state.masterId).single(),
+        _sb.from('appointments').select('*').eq('master_id', state.masterId).order('date_time', { ascending: true }),
+        _sb.from('services').select('*').eq('master_id', state.masterId)
+    ]);
+
+    if (mResult.error || !mResult.data) throw new Error("Профиль мастера не найден");
+
+    state.masterInfo = mResult.data;
+    state.appointments = aResult.data || [];
+    state.services = sResult.data || [];
+
+    // Обновляем UI
+    document.getElementById('header-title').innerText = state.masterInfo.studio_name || 'Кабинет';
+
+    // Заполняем профиль (инпуты)
+    document.getElementById('pf-name').value = state.masterInfo.studio_name || '';
+    document.getElementById('pf-address').value = state.masterInfo.address || '';
+    document.getElementById('pf-about').value = state.masterInfo.about || '';
+
+    renderList();
+    // renderServices(); // Пока не реализовано, но место готово
+}
+
+// --- ОТРИСОВКА СПИСКА ЗАПИСЕЙ ---
+function renderList() {
+    const container = document.getElementById('appts-container');
+    if (!container) return;
+
+    renderApptsList(container, state.appointments, {
+        onDelete: async (id) => {
+            if (await confirmAction("Отменить запись?")) await cancelAppointment(id);
+        },
+        onCopyPhone: (phone) => {
+            if (phone) window.open(`tel:${phone}`, '_self');
+        }
+    });
+}
+
+// --- ОТМЕНА ЗАПИСИ ---
+async function cancelAppointment(id) {
+    const { error } = await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', id);
+
+    if (error) return showAlert("Ошибка БД");
+
+    // Обновляем локально
+    const appt = state.appointments.find(a => a.id === id);
+    if (appt) appt.status = 'cancelled';
+
+    renderList();
+    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+}
 
 init();

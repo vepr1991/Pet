@@ -3,28 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Кабинет мастера</title>
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://telegram.org">
+
     <link rel="stylesheet" href="css/style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="header">
         <div>
-            <div style="font-size:12px; color:#888;">Кабинет мастера</div>
-            <h2 id="header-studio-name">Загрузка...</h2>
+            <div style="font-size:12px; color:#888; font-weight:500;">Кабинет мастера</div>
+            <h2 id="header-title">Загрузка...</h2>
         </div>
-        <button onclick="refreshData()" style="background:none; border:none; font-size:18px;">🔄</button>
+        <button id="btn-refresh" style="background:none; border:none; font-size:18px; cursor:pointer;">🔄</button>
     </div>
 
-    <div class="tab-menu">
-        <div class="tab active" onclick="showTab('tab-appts', this)">Записи</div>
-        <div class="tab" onclick="showTab('tab-services', this)">Услуги</div>
-        <div class="tab" onclick="showTab('tab-profile', this)">Профиль</div>
+    <div class="tab-menu" id="tab-menu">
+        <div class="tab active" data-tab="tab-appts">Записи</div>
+        <div class="tab" data-tab="tab-services">Услуги</div>
+        <div class="tab" data-tab="tab-profile">Профиль</div>
     </div>
 
     <div id="tab-appts" class="section active">
-        <div id="appts-list"></div>
+        <div id="appts-container">
+            <div style="text-align:center; padding:40px; color:#999;">
+                <div style="font-size:24px; margin-bottom:10px;">⏳</div>
+                <div>Загрузка записей...</div>
+            </div>
+        </div>
     </div>
 
     <div id="tab-services" class="section">
@@ -32,14 +41,17 @@
             <span class="section-label">Добавить услугу</span>
             <input type="text" id="srv-name" placeholder="Название">
             <input type="text" id="srv-category" placeholder="Категория" list="cat-suggestions">
-            <datalist id="cat-suggestions"><option value="Собаки мелкие"><option value="Собаки крупные"><option value="Кошки"></datalist>
+            <datalist id="cat-suggestions">
+                <option value="Собаки"></option>
+                <option value="Кошки"></option>
+                <option value="Комплекс"></option>
+            </datalist>
             <div style="display: flex; gap: 10px;">
                 <input type="number" id="srv-price" placeholder="Цена (₸)" style="flex:1">
                 <input type="number" id="srv-duration" placeholder="Мин" value="60" style="width:80px;">
             </div>
-            <input type="text" id="srv-desc" placeholder="Описание">
-            <input type="text" id="srv-image" placeholder="Ссылка на фото">
-            <button class="btn" onclick="addService()">Добавить</button>
+            <textarea id="srv-desc" rows="2" placeholder="Описание" style="width:100%; margin-bottom:10px;"></textarea>
+            <button id="btn-add-service" class="btn">Добавить</button>
         </div>
         <div id="services-list" class="card"></div>
     </div>
@@ -55,10 +67,9 @@
             <span class="section-label">Адрес</span>
             <input type="text" id="pf-address" placeholder="Город, Улица">
             <span class="section-label">О себе</span>
-            <textarea id="pf-about" rows="3" placeholder="Описание..." style="width:100%; padding:12px; border-radius:10px; border:1px solid #C7C7CC; margin-bottom:12px;"></textarea>
-            <span class="section-label">Ссылка на фото</span>
-            <input type="text" id="pf-photo" placeholder="https://..." oninput="updatePreview(this.value)">
-            <button class="btn" onclick="saveProfile()">Сохранить профиль</button>
+            <textarea id="pf-about" rows="3" placeholder="Описание..."></textarea>
+
+            <button id="btn-save-profile" class="btn">Сохранить профиль</button>
         </div>
     </div>
 

@@ -123,7 +123,7 @@ function createApptCard(a, isArchive, actions) {
             btnsRow.appendChild(chatBtn);
         }
 
-        // КНОПКА "ПОЗВОНИТЬ" (Серая) - если есть телефон
+        // КНОПКА "скопировать" (Серая) - если есть телефон
         if (a.phone && actions.onCopyPhone) {
             const callBtn = document.createElement('div');
             callBtn.className = 'copy-phone-btn';
