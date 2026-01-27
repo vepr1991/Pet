@@ -1,32 +1,39 @@
-let currentModalId = 'custom-modal';
-let onConfirmCallback = null;
+// web/js/ui/modal.js
 
 export function initModal() {
-    // Находим кнопки один раз при старте
-    document.querySelector('.m-no').onclick = closeModal;
-    document.querySelector('.m-yes').onclick = async () => {
-        if (onConfirmCallback) {
-            const btn = document.querySelector('.m-yes');
-            const originalText = btn.innerText;
-            btn.innerText = "⏳...";
-            btn.disabled = true;
+    const modal = document.getElementById('custom-modal');
+    if (!modal) return;
 
-            await onConfirmCallback();
-
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-        closeModal();
+    // Закрытие при клике мимо окна
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.style.display = 'none';
     };
+
+    // Кнопка "Нет"
+    const btnNo = modal.querySelector('.m-no');
+    if (btnNo) btnNo.onclick = () => modal.style.display = 'none';
 }
 
 export function showConfirmModal(text, onConfirm) {
-    document.getElementById('modal-text').innerText = text;
-    onConfirmCallback = onConfirm;
-    document.getElementById(currentModalId).style.display = 'flex';
-}
+    const modal = document.getElementById('custom-modal');
+    const txt = document.getElementById('modal-text');
+    const btnYes = modal.querySelector('.m-yes');
 
-export function closeModal() {
-    document.getElementById(currentModalId).style.display = 'none';
-    onConfirmCallback = null;
+    if (!modal || !txt || !btnYes) {
+        // Если модалка не найдена в HTML, просто используем стандартный confirm
+        if(confirm(text)) onConfirm();
+        return;
+    }
+
+    txt.innerText = text;
+    modal.style.display = 'flex';
+
+    // Сбрасываем старые события, чтобы не было двойных кликов
+    const newBtn = btnYes.cloneNode(true);
+    btnYes.parentNode.replaceChild(newBtn, btnYes);
+
+    newBtn.onclick = () => {
+        modal.style.display = 'none';
+        onConfirm();
+    };
 }
