@@ -62,7 +62,7 @@ async function loadServices() {
         .from('services')
         .select('*')
         .eq('master_id', mId)
-        .eq('is_active', true) // <-- Важный фильтр
+        .eq('is_active', true)
         .order('category');
 
     renderAdminServices(list, data, (id) => askDelete(id, 'service'));
@@ -79,7 +79,7 @@ async function addService() {
 
     if(!name || !price) return showAlert("Нужно название и цена");
 
-    // При создании ставим is_active: true (хотя default в БД и так true)
+    // При создании ставим is_active: true
     await _sb.from('services').insert([{
         master_id: mId, name, category: cat, price: Number(price),
         duration: Number(duration), description: desc, image_url: img,
@@ -97,14 +97,22 @@ function askDelete(id, type) {
         let error = null;
 
         if (type === 'service') {
-            // Удаление услуги (скрытие)
+            // Удаление услуги (скрытие через soft delete)
             const res = await _sb.from('services').update({ is_active: false }).eq('id', id);
             error = res.error;
             if (!error) await loadServices();
         } else {
-            // --- ВОТ ЭТОТ БЛОК ОТВЕЧАЕТ ЗА ОТМЕНУ ЗАПИСИ ---
-            // Мы ставим статус 'cancelled'
-            const res = await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', id);
+            // --- ОТМЕНА ЗАПИСИ ---
+
+            // 1. Приводим ID к числу, чтобы база точно поняла
+            const cleanId = Number(id);
+
+            // 2. Ставим статус 'cancelled'
+            const res = await _sb
+                .from('appointments')
+                .update({ status: 'cancelled' })
+                .eq('id', cleanId);
+
             error = res.error;
 
             if (!error) await loadAppts();
@@ -129,7 +137,6 @@ async function saveProfile() {
     const oldText = btn.innerText;
     btn.innerText = "Сохранение..."; btn.disabled = true;
 
-    // Теперь поля address, about_text, photo_url существуют в БД, ошибки не будет
     const { error } = await _sb.from('masters').update({
         studio_name: name,
         address: address,
@@ -163,6 +170,7 @@ function showTab(id, el) {
     el.classList.add('active');
 }
 
+// Экспорт функций для HTML
 window.refreshData = refreshData;
 window.addService = addService;
 window.saveProfile = saveProfile;
