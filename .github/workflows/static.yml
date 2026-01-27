@@ -2,26 +2,25 @@
 name: Deploy static content to Pages
 
 on:
-  # Срабатывает при пуше в main ИЛИ в dev
+  # Срабатывает при пуше в main, dev ИЛИ в stable-version
   push:
-    branches: ["main", "dev"]
+    branches: ["main", "dev", "stable-version"]
 
-  # Allows you to run this workflow manually from the Actions tab
+  # Позволяет запускать воркфлоу вручную из вкладки Actions
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# Устанавливаем разрешения для GITHUB_TOKEN
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# Разрешаем только одно активное развертывание за раз
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
   deploy:
     environment:
       name: github-pages
@@ -37,7 +36,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # 👇 ВАЖНО: Мы публикуем только папку web как корень сайта
+          # Мы публикуем только папку web как корень сайта
           # Это решает проблему с путями и 404 ошибкой
           path: './web'
 
