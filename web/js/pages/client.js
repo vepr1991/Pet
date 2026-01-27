@@ -1,142 +1,336 @@
 import { _sb } from '../core/supabase.js';
-import { tg, showAlert, initTg } from '../core/tg.js';
-import { getMasterId, applyPhoneMask } from '../shared/utils.js';
-import { renderClientCategories, renderClientServices } from '../ui/services.js';
-import { renderCalendar, renderTimeSlots } from '../ui/calendar.js';
+import { tg, showAlert, closeApp } from '../core/tg.js';
+import { renderClientServices, renderClientCategories } from '../ui/services.js';
 
-let mId = null;
-let currDate = new Date();
-let booking = {
-    pet_type: "", breed: "", pet_name: "",
-    service: "", duration: 60, price: 0,
-    phone: "", date: null, time: null, master_id: null
+// --- СОСТОЯНИЕ ---
+let state = {
+    masterId: null,
+    masterInfo: null,
+    services: [],
+    appointments: [],
+    selectedPetType: 'Собака', // По умолчанию
+    selectedService: null,
+    selectedDate: null,
+    selectedTime: null
 };
-let allServices = [];
 
+// --- ИНИЦИАЛИЗАЦИЯ ---
 async function init() {
-    initTg();
-    mId = getMasterId();
-    booking.master_id = mId;
+    const params = new URLSearchParams(window.location.search);
+    state.masterId = params.get('start') || params.get('master_id');
 
-    if (!mId) return document.body.innerHTML = "Ошибка: Нет ID мастера";
-
-    applyPhoneMask(document.getElementById('p-phone'));
-
-    // 1. Загрузка мастера (шапка)
-    const { data: m } = await _sb.from('masters').select('*').eq('telegram_id', mId).single();
-    if (m) renderMasterHeader(m);
-
-    // 2. Загрузка услуг (Только активные!)
-    const { data: srv } = await _sb
-        .from('services')
-        .select('*')
-        .eq('master_id', mId)
-    allServices = srv || [];
-
-    // Рендер категорий и календаря
-    const firstCat = renderClientCategories(
-        document.getElementById('category-filter'),
-        allServices,
-        (cat) => renderServices(cat)
-    );
-    if(allServices.length > 0) renderServices(firstCat);
-
-    updateCalendar();
-}
-
-function renderMasterHeader(m) {
-    document.getElementById('studio-name').innerText = m.studio_name;
-    if(m.photo_url) {
-        document.getElementById('m-avatar').src = m.photo_url;
-        document.getElementById('m-avatar').style.display = 'block';
-        document.getElementById('m-placeholder').style.display = 'none';
+    // Если ID нет (тест), берем какой-нибудь дефолтный или свой
+    if (!state.masterId && tg.initDataUnsafe?.user?.id) {
+        state.masterId = tg.initDataUnsafe.user.id;
     }
-    if(m.address) {
-        const el = document.getElementById('m-address');
-        el.querySelector('span').innerText = m.address;
-        el.style.display = 'flex';
+
+    if (!state.masterId) {
+        document.body.innerHTML = "<div style='padding:20px;text-align:center'>❌ Ссылка недействительна (нет ID мастера)</div>";
+        return;
     }
-    if(m.about_text) {
-        const el = document.getElementById('m-about');
-        el.innerText = m.about_text;
-        el.style.display = 'block';
+
+    await loadMasterData();
+    renderStep1_PetType(); // Запускаем первый шаг
+}
+
+// --- ЗАГРУЗКА ДАННЫХ ---
+async function loadMasterData() {
+    // 1. Инфо о мастере
+    const { data: mData } = await _sb.from('masters').select('*').eq('telegram_id', state.masterId).single();
+    state.masterInfo = mData;
+    if (mData) {
+        document.getElementById('header-title').innerText = mData.studio_name || 'Запись';
     }
-}
 
-function renderServices(cat) {
-    renderClientServices(
-        document.getElementById('services-container'),
-        allServices,
-        cat,
-        (service) => {
-            booking.service = service.name;
-            booking.price = service.price;
-            booking.duration = service.duration || 60;
-        }
-    );
-}
+    // 2. Услуги
+    const { data: sData } = await _sb.from('services').select('*').eq('master_id', state.masterId).eq('is_active', true);
+    state.services = sData || [];
 
-function updateCalendar() {
-    // 1. Обновляем заголовок (Месяц Год) - ВОТ ЭТОЙ СТРОКИ НЕ ХВАТАЛО
-    document.getElementById('month-label').innerText = new Intl.DateTimeFormat('ru-RU', {
-        month: 'long',
-        year: 'numeric'
-    }).format(currDate);
-
-    // 2. Рисуем сетку дней
-    renderCalendar(document.getElementById('calendar'), currDate, (dateStr) => {
-        booking.date = dateStr;
-        loadBusySlots(dateStr);
-    });
-}
-
-async function loadBusySlots(dateStr) {
-    const loader = document.getElementById('loader-time');
-    const container = document.getElementById('time-slots');
-    container.innerHTML = ""; loader.style.display = "block";
-
-    const { data } = await _sb.from('appointments')
+    // 3. Занятые слоты (будущие)
+    const { data: aData } = await _sb.from('appointments')
         .select('date_time')
-        .eq('master_id', mId)
-        .ilike('date_time', `${dateStr}%`)
-        .neq('status', 'cancelled');
+        .eq('master_id', state.masterId)
+        .neq('status', 'cancelled'); // Не берем отмененные
+    state.appointments = aData || [];
+}
 
-    loader.style.display = "none";
+// ==========================================
+// ШАГ 1: ВЫБОР ПИТОМЦА
+// ==========================================
+function renderStep1_PetType() {
+    const container = document.getElementById('main-container');
+    container.innerHTML = `
+        <div class="card">
+            <div class="section-label" style="margin-top:0">1. Кто ваш питомец?</div>
+            <div class="grid-3">
+                <div class="select-card active" onclick="selectPetType('Собака', this)">
+                    <div style="font-size:24px">🐶</div>
+                    <div>Собака</div>
+                </div>
+                <div class="select-card" onclick="selectPetType('Кошка', this)">
+                    <div style="font-size:24px">🐱</div>
+                    <div>Кошка</div>
+                </div>
+                <div class="select-card" onclick="selectPetType('Другое', this)">
+                    <div style="font-size:24px">🐰</div>
+                    <div>Другое</div>
+                </div>
+            </div>
+        </div>
+        <div id="step2-container"></div>
+    `;
 
-    const busyTimes = (data || []).map(item => item.date_time.split(' ')[1]);
+    // Сразу грузим услуги для "Собаки"
+    state.selectedPetType = 'Собака';
+    renderStep2_Services();
+}
 
-    renderTimeSlots(container, dateStr, busyTimes, (time) => {
-        booking.time = time;
+window.selectPetType = (type, el) => {
+    state.selectedPetType = type;
+    document.querySelectorAll('.select-card').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+
+    // Сброс выбора
+    state.selectedService = null;
+    state.selectedDate = null;
+    state.selectedTime = null;
+
+    renderStep2_Services();
+};
+
+// ==========================================
+// ШАГ 2: ВЫБОР УСЛУГИ
+// ==========================================
+function renderStep2_Services() {
+    const container = document.getElementById('step2-container');
+
+    // Фильтруем услуги по типу питомца (примерная логика категорий)
+    // Если категория содержит название питомца - показываем
+    let relevantServices = state.services;
+
+    // Простая фильтрация: если выбрали Кошку, показываем категории "Кошки..."
+    // Если Собаку - "Собаки..."
+    if (state.selectedPetType === 'Кошка') {
+        relevantServices = state.services.filter(s => s.category && s.category.toLowerCase().includes('кошк'));
+    } else if (state.selectedPetType === 'Собака') {
+        relevantServices = state.services.filter(s => !s.category || !s.category.toLowerCase().includes('кошк'));
+    }
+
+    container.innerHTML = `
+        <div class="card" id="services-card">
+            <div class="section-label" style="margin-top:0">2. Выберите услугу</div>
+            <div id="cats-container" class="cat-scroll"></div>
+            <div id="services-list"></div>
+        </div>
+        <div id="step3-container"></div>
+    `;
+
+    const sList = document.getElementById('services-list');
+    const cList = document.getElementById('cats-container');
+
+    // Рендер категорий
+    const initialCat = renderClientCategories(cList, relevantServices, (cat) => {
+        renderClientServices(sList, relevantServices, cat, selectService);
+    });
+
+    // Рендер услуг первой категории
+    renderClientServices(sList, relevantServices, initialCat, selectService);
+}
+
+function selectService(service) {
+    state.selectedService = service;
+    renderStep3_DateTime();
+
+    // Скролл к следующему шагу
+    setTimeout(() => document.getElementById('step3-container').scrollIntoView({behavior: 'smooth'}), 100);
+}
+
+// ==========================================
+// ШАГ 3: ДАТА И ВРЕМЯ
+// ==========================================
+function renderStep3_DateTime() {
+    const container = document.getElementById('step3-container');
+    const today = new Date();
+
+    container.innerHTML = `
+        <div class="card">
+            <div class="section-label" style="margin-top:0">3. Дата и время</div>
+
+            <div class="cal-header">
+                <b id="cal-month-label"></b>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+
+            <div id="time-container" style="display:none; border-top:1px solid #eee; margin-top:16px; padding-top:16px;">
+                <div style="font-size:13px; font-weight:600; color:#888; margin-bottom:8px;">СВОБОДНОЕ ВРЕМЯ</div>
+                <div class="time-grid" id="time-grid"></div>
+            </div>
+        </div>
+        <div id="step4-container"></div>
+    `;
+
+    renderCalendar(today);
+}
+
+function renderCalendar(date) {
+    const grid = document.getElementById('cal-grid');
+    const label = document.getElementById('cal-month-label');
+    const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+
+    label.innerText = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+    grid.innerHTML = '';
+
+    const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    const today = new Date();
+    today.setHours(0,0,0,0); // Обнуляем время для корректного сравнения
+
+    for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(date.getFullYear(), date.getMonth(), i);
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.innerText = i;
+
+        // Если день прошел - дизейблим
+        if (d < today) {
+            el.classList.add('disabled');
+        } else {
+            el.onclick = () => selectDate(d, el);
+        }
+
+        // Если это сегодня - можно выделить (опционально)
+        if (d.getTime() === today.getTime()) {
+            el.style.border = "1px solid var(--accent)";
+            el.style.color = "var(--accent)";
+        }
+
+        grid.appendChild(el);
+    }
+}
+
+function selectDate(date, el) {
+    state.selectedDate = date;
+
+    // Визуал
+    document.querySelectorAll('.day').forEach(d => {
+        d.classList.remove('active');
+        d.style.background = ''; // Сброс "сегодня"
+        d.style.color = '';
+    });
+    el.classList.add('active');
+    el.style.border = 'none'; // Убираем рамку "сегодня", если она была
+
+    // Показываем время
+    document.getElementById('time-container').style.display = 'block';
+    renderTimeSlots(date);
+}
+
+function renderTimeSlots(date) {
+    const grid = document.getElementById('time-grid');
+    grid.innerHTML = '';
+
+    const times = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
+
+    // Формат даты для сравнения с базой: DD.MM.YYYY
+    const dateStr = date.toLocaleDateString('ru-RU');
+
+    // Текущее время для проверки "прошедших" слотов сегодня
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const currentHour = now.getHours();
+
+    times.forEach(time => {
+        const tDiv = document.createElement('button');
+        tDiv.className = 'time-slot';
+        tDiv.innerText = time;
+
+        // 1. Проверка: ЗАНЯТО ЛИ?
+        // Ищем в state.appointments запись с такой датой и временем
+        const fullDateTime = `${dateStr} ${time}`;
+        const isBusy = state.appointments.some(a => a.date_time === fullDateTime);
+
+        // 2. Проверка: ПРОШЛО ЛИ?
+        let isPast = false;
+        if (isToday) {
+            const slotHour = parseInt(time.split(':')[0]);
+            if (slotHour <= currentHour) isPast = true;
+        }
+
+        if (isBusy) {
+            tDiv.classList.add('busy');
+            tDiv.innerText = "Занято"; // Можно оставить время, если хотите
+        } else if (isPast) {
+            tDiv.classList.add('past'); // Добавляем класс для серого цвета
+        } else {
+            tDiv.onclick = () => selectTime(time, tDiv);
+        }
+
+        grid.appendChild(tDiv);
     });
 }
 
-function changeMonth(dir) {
-    currDate.setMonth(currDate.getMonth() + dir);
-    updateCalendar();
+function selectTime(time, el) {
+    state.selectedTime = time;
+    document.querySelectorAll('.time-slot').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+
+    renderStep4_Form();
+    setTimeout(() => document.getElementById('step4-container').scrollIntoView({behavior: 'smooth'}), 100);
 }
 
-function setPetType(type, id) {
-    document.querySelectorAll('.select-card').forEach(el=>el.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    booking.pet_type = type;
+// ==========================================
+// ШАГ 4: ФОРМА (С ВЕРНУВШИМИСЯ ПОЛЯМИ)
+// ==========================================
+function renderStep4_Form() {
+    const container = document.getElementById('step4-container');
+    const user = tg.initDataUnsafe?.user || {};
+
+    container.innerHTML = `
+        <div class="card">
+            <div class="section-label" style="margin-top:0">4. Детали записи</div>
+
+            <div style="font-size:14px; color:#888; margin-bottom:8px;">Ваши данные</div>
+            <input type="text" id="client-name" placeholder="Ваше имя" value="${user.first_name || ''}">
+            <input type="tel" id="client-phone" placeholder="Телефон (+7...)">
+
+            <div style="font-size:14px; color:#888; margin-bottom:8px; margin-top:12px;">Данные питомца</div>
+            <input type="text" id="pet-breed" placeholder="Порода (например, Корги)">
+            <input type="text" id="pet-name" placeholder="Кличка питомца">
+
+            <div style="margin-top:20px; font-size:13px; color:#666; text-align:center;">
+                Запись на <b>${state.selectedDate.toLocaleDateString()}</b> в <b>${state.selectedTime}</b><br>
+                Услуга: ${state.selectedService.name} (${state.selectedService.price} ₸)
+            </div>
+
+            <button class="btn" style="margin-top:16px;" onclick="submitBooking()">✅ Подтвердить запись</button>
+        </div>
+        <div style="height:40px"></div>
+    `;
 }
 
-function sendBooking() {
-    booking.username = tg.initDataUnsafe.user?.username || "";
-    booking.breed = document.getElementById('p-breed').value;
-    booking.pet_name = document.getElementById('p-name').value;
-    booking.phone = document.getElementById('p-phone').value;
+// --- ОТПРАВКА ---
+window.submitBooking = async () => {
+    const name = document.getElementById('client-name').value;
+    const phone = document.getElementById('client-phone').value;
+    const breed = document.getElementById('pet-breed').value;
+    const petName = document.getElementById('pet-name').value;
 
-    if(!booking.pet_type || !booking.service || !booking.breed || !booking.date || !booking.time || booking.phone.length < 10) {
-        return showAlert("Заполните все поля (питомец, услуга, дата, телефон)!");
-    }
-    tg.sendData(JSON.stringify(booking));
-    tg.close();
-}
+    if (!name || !phone) return showAlert("Введите имя и телефон!");
 
-// Экспорт для HTML
-window.changeMonth = changeMonth;
-window.setPetType = setPetType;
-window.sendBooking = sendBooking;
+    const payload = {
+        master_id: state.masterId,
+        service: state.selectedService.name,
+        price: state.selectedService.price,
+        date: state.selectedDate.toLocaleDateString('ru-RU'),
+        time: state.selectedTime,
+        pet_type: state.selectedPetType,
+        breed: breed || 'Не указана',
+        pet_name: petName || 'Без клички',
+        phone: phone,
+        username: tg.initDataUnsafe?.user?.username // Добавляем username для связи
+    };
 
+    tg.sendData(JSON.stringify(payload));
+};
+
+// Запуск
 init();

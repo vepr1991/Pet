@@ -272,13 +272,17 @@ input:focus, textarea:focus { background: #E5E5EA; outline: none; }
     border-color: var(--accent);
     box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
 }
-.time-slot.busy {
+
+/* ОБЪЕДИНЯЕМ ЗАНЯТОЕ И ПРОШЕДШЕЕ ВРЕМЯ */
+.time-slot.busy, .time-slot.past {
     background: #F2F2F7;
-    opacity: 0.5;
-    text-decoration: line-through;
-    color: var(--muted);
+    color: #D1D1D6; /* Бледно-серый текст */
     border-color: transparent;
-    pointer-events: none;
+    pointer-events: none; /* Запрещаем клик */
+    box-shadow: none;
+}
+.time-slot.busy {
+    text-decoration: line-through; /* Занятое - зачеркиваем */
 }
 
 /* --- 11. MODAL --- */
