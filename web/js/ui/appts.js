@@ -8,13 +8,25 @@ export function renderApptsList(container, appointments, actions) {
 
     // Подготовка дат
     appointments.forEach(item => {
-        item._jsDate = parseDateTime(item.date_time);
+        // Если даты нет, ставим старую, чтобы ушло в архив
+        item._jsDate = item.date_time ? parseDateTime(item.date_time) : new Date(0);
     });
 
     const now = new Date();
-    // Фильтрация
-    const future = appointments.filter(i => i._jsDate >= now && i.status !== 'cancelled').sort((a,b) => a._jsDate - b._jsDate);
-    const archive = appointments.filter(i => i._jsDate < now || i.status === 'cancelled').sort((a,b) => b._jsDate - a._jsDate);
+
+    // --- ГЛАВНАЯ ЛОГИКА ФИЛЬТРАЦИИ ---
+
+    // Актуальные: Дата в будущем И статус НЕ cancelled
+    const future = appointments.filter(i =>
+        i._jsDate >= now && i.status !== 'cancelled'
+    ).sort((a,b) => a._jsDate - b._jsDate);
+
+    // Архив: Дата в прошлом ИЛИ статус cancelled
+    const archive = appointments.filter(i =>
+        i._jsDate < now || i.status === 'cancelled'
+    ).sort((a,b) => b._jsDate - a._jsDate);
+
+    // ---------------------------------
 
     container.innerHTML = '';
 
@@ -32,11 +44,23 @@ export function renderApptsList(container, appointments, actions) {
 
         const btn = document.createElement('div');
         btn.className = 'archive-btn';
-        btn.onclick = function() { this.classList.toggle('open'); this.nextElementSibling.classList.toggle('show'); };
+        // При клике переключаем класс open у кнопки и show у списка
+        btn.onclick = function() {
+            this.classList.toggle('open');
+            const list = this.nextElementSibling;
+            if (list.style.display === "block") {
+                list.style.display = "none";
+            } else {
+                list.style.display = "block";
+            }
+        };
         btn.innerHTML = `<span>🗄 Архив (${archive.length})</span> <span class="archive-arrow">▼</span>`;
 
         const arcList = document.createElement('div');
         arcList.className = 'archive-list';
+        // По умолчанию скрыто
+        arcList.style.display = "none";
+
         archive.forEach(a => arcList.appendChild(createApptCard(a, true, actions)));
 
         archiveContainer.appendChild(btn);
@@ -47,17 +71,23 @@ export function renderApptsList(container, appointments, actions) {
 
 function createApptCard(a, isArchive, actions) {
     const div = document.createElement('div');
-    div.className = `card appt-card ${isArchive ? 'past' : ''}`;
-
+    // Если статус cancelled, добавляем класс past (чтобы стало серым)
     const isCancelled = a.status === 'cancelled';
-    const statusLabel = isCancelled ? '<span style="color:var(--danger)">❌ Отменено</span>' : (isArchive ? '🏁' : '📅');
+    div.className = `card appt-card ${isArchive || isCancelled ? 'past' : ''}`;
 
-    // Кнопка удаления (только для активных)
+    let statusLabel = isArchive ? '🏁' : '📅';
+    if (isCancelled) statusLabel = '<span style="color:red">❌ Отменено</span>';
+
+    // Кнопка удаления (только для АКТИВНЫХ и НЕ отмененных)
+    // Если запись в архиве или уже отменена - кнопку удаления не показываем
     if (!isCancelled && !isArchive && actions.onDelete) {
         const delBtn = document.createElement('button');
         delBtn.className = 'btn-appt-del';
-        delBtn.innerText = '🗑';
-        delBtn.onclick = () => actions.onDelete(a.id);
+        delBtn.innerText = '🗑'; // Иконка корзины
+        delBtn.onclick = (e) => {
+            e.stopPropagation(); // Чтобы не кликалось по карточке
+            actions.onDelete(a.id);
+        };
         div.appendChild(delBtn);
     }
 
@@ -67,17 +97,16 @@ function createApptCard(a, isArchive, actions) {
         <div class="client-name" style="${isCancelled ? 'text-decoration:line-through;color:#999':''}">👤 ${a.client_name || 'Клиент'}</div>
         <div class="info-row">🐶 ${a.breed || ''} ${a.pet_name ? '('+a.pet_name+')' : ''}</div>
         <div class="info-row">✂️ ${a.service}</div>
+        <div class="info-row" style="font-size:12px; margin-top:4px;">📞 ${a.phone}</div>
     `;
 
-    // Кнопки действий (Звонок / Чат) - только для активных
-    if (!isArchive && !isCancelled) {
-        if (actions.onCopyPhone) {
-            const phoneBtn = document.createElement('div');
-            phoneBtn.className = 'copy-phone-btn';
-            phoneBtn.innerHTML = `📞 ${a.phone}`;
-            phoneBtn.onclick = () => actions.onCopyPhone(a.phone);
-            div.appendChild(phoneBtn);
-        }
+    // Кнопка копирования телефона (если активная запись)
+    if (!isArchive && !isCancelled && actions.onCopyPhone) {
+        const phoneBtn = document.createElement('div');
+        phoneBtn.className = 'copy-phone-btn';
+        phoneBtn.innerHTML = `📞 Позвонить`;
+        phoneBtn.onclick = () => actions.onCopyPhone(a.phone);
+        div.appendChild(phoneBtn);
     }
 
     return div;
