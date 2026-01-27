@@ -27,12 +27,12 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
-    margin: 0; padding: 10px; /* Чуть меньше отступ от краев экрана */
+    margin: 0; padding: 10px;
     padding-bottom: 80px;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
     background: var(--bg); color: var(--text);
     font-size: 15px;
-    line-height: 1.3; /* Текст плотнее */
+    line-height: 1.3;
     letter-spacing: -0.2px;
 }
 
@@ -43,11 +43,10 @@ body {
 }
 .header h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
 
-/* Уменьшили отступы у заголовков секций */
 .section-label {
     font-size: 13px; font-weight: 500; text-transform: uppercase;
     color: var(--muted);
-    margin: 16px 0 6px 4px; /* Компактнее */
+    margin: 16px 0 6px 4px;
     letter-spacing: 0.2px;
 }
 
@@ -55,21 +54,21 @@ body {
 .card {
     background: var(--card);
     border-radius: var(--r-m);
-    padding: 14px; /* Чуть меньше воздуха внутри */
+    padding: 14px;
     margin-bottom: 10px;
     box-shadow: var(--shadow);
 }
 
-/* --- 5. ПОЛЯ ВВОДА (КОМПАКТНЫЕ) --- */
+/* --- 5. ПОЛЯ ВВОДА --- */
 input, textarea {
     width: 100%;
-    height: 42px; /* Чуть ниже (было 44) */
+    height: 42px;
     padding: 0 12px;
     border-radius: var(--r-s);
     border: none;
     background: #F2F2F7;
     font-size: 16px;
-    margin-bottom: 8px; /* <-- ВОТ ГЛАВНОЕ ИЗМЕНЕНИЕ (БЫЛО 12px) */
+    margin-bottom: 8px;
     color: var(--text);
     transition: background 0.2s;
     font-family: inherit;
@@ -93,7 +92,6 @@ input:focus, textarea:focus { background: #E5E5EA; outline: none; }
 .btn:active { transform: scale(0.98); opacity: 0.8; }
 .btn:disabled { background: var(--muted); opacity: 0.5; }
 
-/* Кнопка удаления услуги */
 .btn-del {
     width: 32px; height: 32px; border-radius: 50%;
     background: var(--input-bg); color: var(--muted);
@@ -103,7 +101,7 @@ input:focus, textarea:focus { background: #E5E5EA; outline: none; }
 }
 .btn-del:active { background: var(--danger-soft); color: var(--danger); transform: scale(0.9); }
 
-/* --- 7. ВКЛАДКИ --- */
+/* --- 7. ВКЛАДКИ (С ИСПРАВЛЕНИЕМ) --- */
 .tab-menu {
     display: flex; background: #E5E5EA; padding: 2px;
     border-radius: 9px; margin-bottom: 16px;
@@ -115,6 +113,14 @@ input:focus, textarea:focus { background: #E5E5EA; outline: none; }
 }
 .tab.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600; }
 
+/* !!! ВОТ ТО, ЧТО БЫЛО ПОТЕРЯНО !!! */
+.section { display: none; } /* Скрываем все секции по умолчанию */
+.section.active {
+    display: block; /* Показываем только активную */
+    animation: iosFade 0.2s ease-out;
+}
+/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+
 /* --- 8. СПИСКИ --- */
 .service-row {
     display: flex; justify-content: space-between; align-items: center;
@@ -122,11 +128,9 @@ input:focus, textarea:focus { background: #E5E5EA; outline: none; }
 }
 .service-row:last-child { border-bottom: none; }
 
-/* Карточка записи */
 .appt-card { position: relative; padding-right: 50px; }
 .appt-card.past { opacity: 0.5; filter: grayscale(1); }
 
-/* КОРЗИНА (СОХРАНЯЕМ Z-INDEX!) */
 .btn-appt-del {
     position: absolute; top: 10px; right: 0;
     width: 40px !important; height: 40px !important;
@@ -144,9 +148,8 @@ input:focus, textarea:focus { background: #E5E5EA; outline: none; }
 .client-name { font-size: 17px; font-weight: 600; margin-bottom: 2px; color: #000; }
 .info-row { font-size: 14px; color: #3C3C43; opacity: 0.8; margin-bottom: 1px; }
 
-/* Кнопка "Позвонить" */
 .copy-phone-btn {
-    margin-top: 10px; height: 40px; /* Чуть компактнее */
+    margin-top: 10px; height: 40px;
     background: #F2F2F7; color: var(--accent);
     border-radius: 10px; font-weight: 600; font-size: 15px;
     display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -181,7 +184,6 @@ input:focus, textarea:focus { background: #E5E5EA; outline: none; }
 .srv-price { font-weight: 600; color: var(--accent); font-size: 14px; margin-top: 4px; }
 .srv-img { width: 56px; height: 56px; border-radius: 10px; background: #f0f0f0; object-fit: cover; flex-shrink: 0; }
 
-/* Календарь */
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .day { aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; transition: var(--tap); }
 .day.active { background: var(--accent); color: white; }
@@ -198,5 +200,4 @@ input:focus, textarea:focus { background: #E5E5EA; outline: none; }
 .m-btn { flex: 1; padding: 12px; background: transparent; border: none; font-size: 17px; font-weight: 400; color: var(--accent); cursor: pointer; }
 .m-yes { color: var(--danger); font-weight: 600; }
 
-.section.active { animation: iosFade 0.2s ease-out; }
 @keyframes iosFade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
