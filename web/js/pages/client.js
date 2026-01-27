@@ -7,17 +7,13 @@ let state = {
     masterInfo: null,
     services: [],
     appointments: [],
-
     selectedPetType: 'Собака',
     selectedService: null,
     selectedDate: null,
     selectedTime: null,
-
-    // Добавили курсор для календаря (какой месяц сейчас смотрим)
     calendarCursor: new Date()
 };
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 function initPhoneMask(input) {
     input.addEventListener('input', (e) => {
         let value = e.target.value.replace(/\D/g, '');
@@ -29,11 +25,10 @@ function initPhoneMask(input) {
             if (value.length >= 8) formatted += '-' + value.substring(7, 9);
             if (value.length >= 10) formatted += '-' + value.substring(9, 11);
         }
-        e.target.value = formatted;
+        e.target.value = value.length > 0 ? formatted : '';
     });
 }
 
-// --- ОСНОВНАЯ ЛОГИКА ---
 async function init() {
     const params = new URLSearchParams(window.location.search);
     state.masterId = params.get('master_id') || params.get('start') || params.get('tgWebAppStartParam');
@@ -52,34 +47,31 @@ async function init() {
 }
 
 async function loadMasterData() {
-    // 1. Формируем запросы (но пока не ждем ответа, просто запускаем)
     const masterPromise = _sb.from('masters').select('*').eq('telegram_id', state.masterId).single();
     const servicesPromise = _sb.from('services').select('*').eq('master_id', state.masterId);
     const appointmentsPromise = _sb.from('appointments').select('date_time').eq('master_id', state.masterId).neq('status', 'cancelled');
 
-    // 2. Ждем выполнения ВСЕХ запросов сразу (это в 3 раза быстрее)
     const [mResult, sResult, aResult] = await Promise.all([
         masterPromise,
         servicesPromise,
         appointmentsPromise
     ]);
 
-    // 3. Обрабатываем результаты
     if (mResult.data) {
         state.masterInfo = mResult.data;
-        document.getElementById('header-title').innerText = mResult.data.studio_name || 'Запись';
+        const title = document.getElementById('header-title');
+        if (title) title.innerText = mResult.data.studio_name || 'Запись';
     } else {
-        throw new Error("Мастер не найден"); // Или обработать ошибку мягче
+        throw new Error("Мастер не найден");
     }
 
     state.services = sResult.data || [];
     state.appointments = aResult.data || [];
 }
 
-// ... ШАГИ 1 и 2 БЕЗ ИЗМЕНЕНИЙ ...
-
 function renderStep1_PetType() {
     const container = document.getElementById('main-container');
+    if (!container) return;
     container.innerHTML = `
         <div class="card">
             <div class="section-label" style="margin-top:0">1. Кто ваш питомец?</div>
@@ -100,12 +92,14 @@ window.selectPetType = (type, el) => {
     document.querySelectorAll('.select-card').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
     state.selectedService = null;
-    document.getElementById('step2-container').innerHTML = '';
+    const s2 = document.getElementById('step2-container');
+    if (s2) s2.innerHTML = '';
     renderStep2_Services();
 };
 
 function renderStep2_Services() {
     const container = document.getElementById('step2-container');
+    if (!container) return;
     let relevantServices = state.services;
     const petFilter = state.selectedPetType.toLowerCase().substring(0, 3);
 
@@ -134,30 +128,24 @@ function renderStep2_Services() {
 function selectService(service) {
     state.selectedService = service;
     renderStep3_DateTime();
-    setTimeout(() => document.getElementById('step3-container').scrollIntoView({behavior: 'smooth'}), 100);
+    const s3 = document.getElementById('step3-container');
+    if (s3) setTimeout(() => s3.scrollIntoView({behavior: 'smooth'}), 100);
 }
 
-// ==========================================
-// ШАГ 3: КАЛЕНДАРЬ (ИСПРАВЛЕННЫЙ)
-// ==========================================
 function renderStep3_DateTime() {
     const container = document.getElementById('step3-container');
-
-    // Сбрасываем курсор календаря на текущий месяц при открытии
+    if (!container) return;
     state.calendarCursor = new Date();
 
     container.innerHTML = `
         <div class="card">
             <div class="section-label" style="margin-top:0">3. Дата и время</div>
-
             <div class="cal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <button onclick="changeMonth(-1)" style="border:none; background:none; color:var(--accent); font-size:20px; cursor:pointer; padding:5px;">❮</button>
                 <b id="cal-month-label" style="font-size:16px;"></b>
                 <button onclick="changeMonth(1)" style="border:none; background:none; color:var(--accent); font-size:20px; cursor:pointer; padding:5px;">❯</button>
             </div>
-
             <div class="cal-grid" id="cal-grid"></div>
-
             <div id="time-container" style="display:none; border-top:1px solid #eee; margin-top:16px; padding-top:16px;">
                 <div class="section-label" style="margin:0 0 8px 0">Свободное время</div>
                 <div class="time-grid" id="time-grid"></div>
@@ -165,25 +153,22 @@ function renderStep3_DateTime() {
         </div>
         <div id="step4-container"></div>
     `;
-
     renderCalendar();
 }
 
-// Функция переключения месяца (глобальная, чтобы работала из onclick)
 window.changeMonth = (step) => {
     state.calendarCursor.setMonth(state.calendarCursor.getMonth() + step);
     renderCalendar();
 };
 
 function renderCalendar() {
-    const date = state.calendarCursor; // Берем месяц из курсора
+    const date = state.calendarCursor;
     const grid = document.getElementById('cal-grid');
     const label = document.getElementById('cal-month-label');
     const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 
     if(label) label.innerText = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
     if(!grid) return;
-
     grid.innerHTML = '';
 
     const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -195,41 +180,31 @@ function renderCalendar() {
         const el = document.createElement('div');
         el.className = 'day';
         el.innerText = i;
-
-        // Проверяем: выбран ли этот день?
-        if (state.selectedDate && d.getTime() === state.selectedDate.getTime()) {
-            el.classList.add('active');
-        }
-
-        // Прошедшие дни
+        if (state.selectedDate && d.getTime() === state.selectedDate.getTime()) el.classList.add('active');
         if (d < today) {
             el.classList.add('disabled');
         } else {
             el.onclick = () => selectDate(d, el);
         }
-
-        // Сегодня
         if (d.getTime() === today.getTime() && !el.classList.contains('active')) {
             el.style.border = "1px solid var(--accent)";
             el.style.color = "var(--accent)";
         }
-
         grid.appendChild(el);
     }
 }
 
 function selectDate(date, el) {
     state.selectedDate = date;
-
-    // Перерисовка, чтобы убрать выделение с других дней
     renderCalendar();
-
-    document.getElementById('time-container').style.display = 'block';
+    const tc = document.getElementById('time-container');
+    if (tc) tc.style.display = 'block';
     renderTimeSlots(date);
 }
 
 function renderTimeSlots(date) {
     const grid = document.getElementById('time-grid');
+    if (!grid) return;
     grid.innerHTML = '';
     const times = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
     const dateStr = date.toLocaleDateString('ru-RU');
@@ -240,12 +215,7 @@ function renderTimeSlots(date) {
         const tDiv = document.createElement('button');
         tDiv.className = 'time-slot';
         tDiv.innerText = time;
-
-        // Выделение выбранного времени
-        if (state.selectedTime === time) {
-            tDiv.classList.add('active');
-        }
-
+        if (state.selectedTime === time) tDiv.classList.add('active');
         const fullDT = `${dateStr} ${time}`;
         const isBusy = state.appointments.some(a => a.date_time === fullDT);
         const isPast = isToday && parseInt(time.split(':')[0]) <= now.getHours();
@@ -255,7 +225,7 @@ function renderTimeSlots(date) {
         else {
             tDiv.onclick = () => {
                 state.selectedTime = time;
-                renderTimeSlots(date); // Перерисовка для подсветки
+                renderTimeSlots(date);
                 renderStep4_Form();
             };
         }
@@ -265,6 +235,7 @@ function renderTimeSlots(date) {
 
 function renderStep4_Form() {
     const container = document.getElementById('step4-container');
+    if (!container) return;
     const user = tg.initDataUnsafe?.user || {};
     container.innerHTML = `
         <div class="card">
@@ -276,7 +247,8 @@ function renderStep4_Form() {
             <button class="btn" style="margin-top:16px;" onclick="submitBooking()">✅ Подтвердить запись</button>
         </div>
     `;
-    initPhoneMask(document.getElementById('client-phone'));
+    const pi = document.getElementById('client-phone');
+    if (pi) initPhoneMask(pi);
     setTimeout(() => container.scrollIntoView({behavior: 'smooth'}), 100);
 }
 
@@ -288,9 +260,9 @@ window.submitBooking = async () => {
         date: state.selectedDate.toLocaleDateString('ru-RU'),
         time: state.selectedTime,
         pet_type: state.selectedPetType,
-        breed: document.getElementById('pet-breed').value || 'Не указана',
-        pet_name: document.getElementById('pet-name').value || 'Без клички',
-        phone: document.getElementById('client-phone').value,
+        breed: document.getElementById('pet-breed')?.value || 'Не указана',
+        pet_name: document.getElementById('pet-name')?.value || 'Без клички',
+        phone: document.getElementById('client-phone')?.value,
         username: tg.initDataUnsafe?.user?.username || ''
     };
     if (!payload.phone || payload.phone.length < 10) return showAlert("Введите корректный номер телефона!");

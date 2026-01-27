@@ -9,9 +9,9 @@ let state = {
     services: []
 };
 
-// --- ИНИЦИАЛИЗАЦИЯ ---
 async function init() {
     const params = new URLSearchParams(window.location.search);
+    // Ищем ID мастера всеми способами
     state.masterId = params.get('master_id') || params.get('master') || tg.initDataUnsafe?.user?.id;
 
     if (!state.masterId) {
@@ -25,12 +25,12 @@ async function init() {
     try {
         await loadData();
     } catch (e) {
-        console.error(e);
-        document.getElementById('header-title').innerText = "Ошибка загрузки";
+        console.error("Critical Load Error:", e);
+        const title = document.getElementById('header-title');
+        if (title) title.innerText = "Ошибка загрузки";
     }
 }
 
-// --- ЛОГИКА ВКЛАДОК ---
 function setupTabs() {
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -39,24 +39,19 @@ function setupTabs() {
 
             tab.classList.add('active');
             const sectionId = tab.getAttribute('data-tab');
-            document.getElementById(sectionId).classList.add('active');
+            const section = document.getElementById(sectionId);
+            if (section) section.classList.add('active');
         });
     });
 }
 
 function setupListeners() {
     document.getElementById('btn-refresh')?.addEventListener('click', loadData);
-
-    // Кнопка сохранения профиля
     document.getElementById('btn-save-profile')?.addEventListener('click', saveProfile);
-
-    // Кнопка добавления услуги
     document.getElementById('btn-add-service')?.addEventListener('click', addService);
 }
 
-// --- ЗАГРУЗКА ДАННЫХ ---
 async function loadData() {
-    // Показываем спиннер, пока грузим
     const header = document.getElementById('header-title');
     if(header) header.innerText = 'Обновление...';
 
@@ -76,13 +71,9 @@ async function loadData() {
 }
 
 function updateUI() {
-    // 1. Заголовок (Название салона)
     const titleEl = document.getElementById('header-title');
-    if (titleEl) {
-        titleEl.innerText = state.masterInfo.studio_name || 'Кабинет мастера';
-    }
+    if (titleEl) titleEl.innerText = state.masterInfo.studio_name || 'Кабинет мастера';
 
-    // 2. Вкладка "Записи"
     const apptsContainer = document.getElementById('appts-container');
     if (apptsContainer) {
         renderApptsList(apptsContainer, state.appointments, {
@@ -90,28 +81,32 @@ function updateUI() {
                 if (await confirmAction("Отменить запись?")) await cancelAppointment(id);
             },
             onCopyPhone: (phone) => {
-                if(phone) window.open(`tel:${phone}`, '_self');
+                if(phone) {
+                   if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                   window.open(`tel:${phone}`, '_self');
+                }
             }
         });
     }
 
-    // 3. Вкладка "Профиль" (Заполняем поля)
-    document.getElementById('pf-name').value = state.masterInfo.studio_name || '';
-    document.getElementById('pf-address').value = state.masterInfo.address || '';
-    document.getElementById('pf-about').value = state.masterInfo.about || '';
+    // Безопасное заполнение полей профиля
+    const fields = {
+        'pf-name': state.masterInfo.studio_name,
+        'pf-address': state.masterInfo.address,
+        'pf-about': state.masterInfo.about
+    };
 
-    // Аватарка (если есть)
-    // document.getElementById('pf-photo').value = state.masterInfo.avatar_url || '';
+    for (const [id, val] of Object.entries(fields)) {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    }
 
-    // 4. Вкладка "Услуги"
     renderServices();
 }
 
-// --- ОТРИСОВКА УСЛУГ ---
 function renderServices() {
     const container = document.getElementById('services-list');
     if (!container) return;
-
     container.innerHTML = '';
 
     if (state.services.length === 0) {
@@ -121,100 +116,77 @@ function renderServices() {
 
     state.services.forEach(srv => {
         const div = document.createElement('div');
-        div.className = 'service-row'; // Используем стиль из style.css
+        div.className = 'service-row';
         div.innerHTML = `
             <div>
                 <div style="font-weight:600;">${srv.name}</div>
                 <div style="font-size:13px; color:#888;">${srv.price} ₸ • ${srv.duration_min} мин</div>
             </div>
         `;
-
-        // Кнопка удаления услуги
         const btnDel = document.createElement('button');
-        btnDel.className = 'btn-del'; // Стиль крестика
+        btnDel.className = 'btn-del';
         btnDel.innerText = '✕';
         btnDel.onclick = () => deleteService(srv.id);
-
         div.appendChild(btnDel);
         container.appendChild(div);
     });
 }
 
-// --- ДЕЙСТВИЯ: ДОБАВЛЕНИЕ УСЛУГИ ---
 async function addService() {
-    const name = document.getElementById('srv-name').value;
-    const price = document.getElementById('srv-price').value;
-    const duration = document.getElementById('srv-duration').value || 60;
-    const category = document.getElementById('srv-category').value || 'Основное';
-    const desc = document.getElementById('srv-desc').value || '';
+    const name = document.getElementById('srv-name')?.value;
+    const price = document.getElementById('srv-price')?.value;
+    const duration = document.getElementById('srv-duration')?.value || 60;
+    const category = document.getElementById('srv-category')?.value || 'Основное';
+    const desc = document.getElementById('srv-desc')?.value || '';
 
     if (!name || !price) return showAlert("Введите название и цену");
 
     const { data, error } = await _sb.from('services').insert({
         master_id: state.masterId,
-        name,
-        price,
-        duration_min: duration,
-        category,
-        description: desc,
-        is_active: true
+        name, price, duration_min: duration,
+        category, description: desc, is_active: true
     }).select();
 
-    if (error) {
-        console.error(error);
-        return showAlert("Ошибка при создании");
-    }
+    if (error) return showAlert("Ошибка при создании");
 
-    // Очищаем поля
     document.getElementById('srv-name').value = '';
     document.getElementById('srv-price').value = '';
-
-    // Обновляем список
     state.services.push(data[0]);
     renderServices();
     showAlert("Услуга добавлена!");
 }
 
-// --- ДЕЙСТВИЯ: УДАЛЕНИЕ УСЛУГИ ---
 async function deleteService(id) {
     if (!await confirmAction("Удалить услугу?")) return;
-
     const { error } = await _sb.from('services').delete().eq('id', id);
     if (error) return showAlert("Ошибка удаления");
-
     state.services = state.services.filter(s => s.id !== id);
     renderServices();
 }
 
-// --- ДЕЙСТВИЯ: СОХРАНЕНИЕ ПРОФИЛЯ ---
 async function saveProfile() {
-    const name = document.getElementById('pf-name').value;
-    const address = document.getElementById('pf-address').value;
-    const about = document.getElementById('pf-about').value;
+    const name = document.getElementById('pf-name')?.value;
+    const address = document.getElementById('pf-address')?.value;
+    const about = document.getElementById('pf-about')?.value;
 
     if (!name) return showAlert("Название студии обязательно");
 
     const { error } = await _sb.from('masters').update({
-        studio_name: name,
-        address: address,
-        about: about
+        studio_name: name, address: address, about: about
     }).eq('telegram_id', state.masterId);
 
     if (error) return showAlert("Ошибка сохранения");
-
     showAlert("Профиль сохранен!");
-    document.getElementById('header-title').innerText = name;
+    const title = document.getElementById('header-title');
+    if (title) title.innerText = name;
 }
 
-// --- ОТМЕНА ЗАПИСИ ---
 async function cancelAppointment(id) {
     const { error } = await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', id);
     if (error) return showAlert("Ошибка БД");
-
     const appt = state.appointments.find(a => a.id === id);
     if (appt) appt.status = 'cancelled';
-
-    updateUI(); // Перерисовываем список
+    updateUI();
 }
 
 init();
