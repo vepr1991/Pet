@@ -6,32 +6,35 @@ export function renderApptsList(container, appointments, actions) {
         return;
     }
 
+    // Начало сегодняшнего дня для корректной фильтрации
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
     // Подготовка дат
     appointments.forEach(item => {
         item._jsDate = item.date_time ? parseDateTime(item.date_time) : new Date(0);
     });
 
-    const now = new Date();
-
-    // Разделение на Актуальные и Архив
+    // 1. АКТИВНЫЕ: Это будущее + сегодня, ЕСЛИ статус не 'cancelled'
     const future = appointments.filter(i =>
-        i._jsDate >= now && i.status !== 'cancelled'
+        i.status !== 'cancelled' && i._jsDate >= todayStart
     ).sort((a,b) => a._jsDate - b._jsDate);
 
+    // 2. АРХИВ: Это прошлое (вчера) ИЛИ статус 'cancelled'
     const archive = appointments.filter(i =>
-        i._jsDate < now || i.status === 'cancelled'
+        i.status === 'cancelled' || i._jsDate < todayStart
     ).sort((a,b) => b._jsDate - a._jsDate);
 
     container.innerHTML = '';
 
-    // 1. Рендер Актуальных
+    // Рендер Актуальных
     if (future.length > 0) {
         future.forEach(a => container.appendChild(createApptCard(a, false, actions)));
     } else {
         container.innerHTML += `<div style="text-align:center; padding:20px; color:#aaa">Нет актуальных записей</div>`;
     }
 
-    // 2. Рендер Архива
+    // Рендер Архива
     if (archive.length > 0) {
         const archiveContainer = document.createElement('div');
         archiveContainer.className = 'archive-container';
@@ -60,22 +63,23 @@ export function renderApptsList(container, appointments, actions) {
 function createApptCard(a, isArchive, actions) {
     const div = document.createElement('div');
     const isCancelled = a.status === 'cancelled';
+
+    // Стиль 'past' (серый) даем только если реально архив или отмена
     div.className = `card appt-card ${isArchive || isCancelled ? 'past' : ''}`;
 
     let statusLabel = isArchive ? '🏁' : '📅';
     if (isCancelled) statusLabel = '<span style="color:red">❌ Отменено</span>';
 
-    // Кнопка удаления (КОРЗИНА)
-    // Показываем только если запись НЕ в архиве и НЕ отменена
+    // --- КНОПКА УДАЛЕНИЯ (КОРЗИНА) ---
+    // Показываем ТОЛЬКО если запись не отменена и не в архиве
     if (!isCancelled && !isArchive && actions.onDelete) {
         const delBtn = document.createElement('button');
         delBtn.className = 'btn-appt-del';
-        delBtn.innerText = '🗑';
+        delBtn.innerText = '🗑'; // Иконка
 
         delBtn.onclick = (e) => {
             e.stopPropagation();
-            // alert("Удаляем ID: " + a.id); // Для отладки можно раскомментировать
-            actions.onDelete(a.id);
+            actions.onDelete(a.id); // Вызов удаления
         };
         div.appendChild(delBtn);
     }

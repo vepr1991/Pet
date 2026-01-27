@@ -49,6 +49,7 @@ async function loadAppts() {
 
 async function loadServices() {
     const list = document.getElementById('services-list');
+    // Услуги: берем все, сортируем по категории
     const { data } = await _sb
         .from('services')
         .select('*')
@@ -84,29 +85,26 @@ function askDelete(id, type) {
         let error = null;
 
         if (type === 'service') {
-            // ЛОГИКА 1: УСЛУГИ - HARD DELETE
+            // ЛОГИКА 1: УСЛУГИ - УДАЛЯЕМ НАСОВСЕМ (как в старом файле)
             const res = await _sb.from('services').delete().eq('id', id);
             error = res.error;
             if (!error) await loadServices();
 
         } else {
-            // ЛОГИКА 2: ЗАПИСИ - SOFT DELETE
+            // ЛОГИКА 2: ЗАПИСИ - В АРХИВ (как в старом файле)
             const cleanId = Number(id);
 
-            // ИСПРАВЛЕНО: Убрана лишняя точка с запятой перед .select()
+            // Меняем статус на cancelled
             const res = await _sb
                 .from('appointments')
                 .update({ status: 'cancelled' })
                 .eq('id', cleanId)
-                .select();
+                .select(); // Вернет обновленную запись для проверки
 
             error = res.error;
 
-            if (!error && (!res.data || res.data.length === 0)) {
-                // Если select ничего не вернул, значит запись не обновилась
-                console.error("Запрос прошел, но запись не найдена или заблокирована.");
-                alert("⚠️ Ошибка обновления. Проверьте права доступа.");
-            } else if (!error) {
+            // Если ошибок нет - обновляем список
+            if (!error) {
                 await loadAppts();
             }
         }
@@ -118,7 +116,7 @@ function askDelete(id, type) {
     });
 }
 
-// Функции для HTML
+// Функции профиля и вкладок
 async function saveProfile() {
     const name = document.getElementById('pf-name').value;
     const address = document.getElementById('pf-address').value;
@@ -157,12 +155,10 @@ function showTab(id, el) {
     el.classList.add('active');
 }
 
-// Экспорт в глобальную область
 window.refreshData = refreshData;
 window.addService = addService;
 window.saveProfile = saveProfile;
 window.updatePreview = updatePreview;
 window.showTab = showTab;
 
-// Запуск
 init();
