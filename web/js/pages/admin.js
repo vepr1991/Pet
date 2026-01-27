@@ -97,22 +97,21 @@ function askDelete(id, type) {
         let error = null;
 
         if (type === 'service') {
-            // Пытаемся скрыть услугу
+            // Удаление услуги (скрытие)
             const res = await _sb.from('services').update({ is_active: false }).eq('id', id);
             error = res.error;
-
-            if (!error) await loadServices(); // Обновляем список только если нет ошибки
+            if (!error) await loadServices();
         } else {
-            // Отменяем запись
+            // --- ВОТ ЭТОТ БЛОК ОТВЕЧАЕТ ЗА ОТМЕНУ ЗАПИСИ ---
+            // Мы ставим статус 'cancelled'
             const res = await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', id);
             error = res.error;
 
             if (!error) await loadAppts();
         }
 
-        // Если Supabase вернул ошибку — показываем её
         if (error) {
-            console.error("Ошибка Supabase:", error);
+            console.error("Ошибка Базы данных:", error);
             showAlert("❌ Ошибка: " + error.message);
         }
     });
