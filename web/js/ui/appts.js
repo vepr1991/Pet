@@ -1,8 +1,6 @@
 import { parseDateTime } from '../shared/utils.js';
 
 export function renderApptsList(container, appointments, actions) {
-    console.log("🚀 renderApptsList запущен. Записей:", appointments?.length);
-
     if (!appointments || appointments.length === 0) {
         container.innerHTML = `<div style="text-align:center; margin-top:40px; color:#999;">📭 Пока нет записей</div>`;
         return;
@@ -61,43 +59,14 @@ export function renderApptsList(container, appointments, actions) {
 function createApptCard(a, isArchive, actions) {
     const div = document.createElement('div');
     const isCancelled = a.status === 'cancelled';
-
     div.className = `card appt-card ${isArchive || isCancelled ? 'past' : ''}`;
 
     let statusLabel = isArchive ? '🏁' : '📅';
     if (isCancelled) statusLabel = '<span style="color:red">❌ Отменено</span>';
 
-    // --- ЛОГИКА КНОПКИ УДАЛЕНИЯ ---
-    // Проверяем условия для рендера кнопки
-    const canDelete = !isCancelled && !isArchive && actions.onDelete;
-
-    if (canDelete) {
-        console.log(`➕ Добавляю кнопку удаления для ID: ${a.id}`);
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn-appt-del';
-        delBtn.innerText = '🗑';
-
-        // ВЕШАЕМ ОБРАБОТЧИК С АЛЕРТОМ
-        delBtn.onclick = (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-
-            // ЕСЛИ ТЫ ВИДИШЬ ЭТОТ ALERT - ЗНАЧИТ ФАЙЛ appts.js И style.css РАБОТАЮТ ИДЕАЛЬНО
-            alert(`🛠 DEBUG: Клик по корзине пойман!\nID записи: ${a.id}`);
-
-            console.log(`🔥 Клик по корзине ID: ${a.id}`);
-
-            if (actions.onDelete) {
-                actions.onDelete(a.id);
-            } else {
-                alert("❌ Ошибка: Функция onDelete не передана!");
-            }
-        };
-        div.appendChild(delBtn);
-    }
-
-    div.innerHTML += `
+    // 1. СНАЧАЛА ПИШЕМ HTML (ТЕКСТ)
+    // Важно сделать это до того, как мы добавим кнопку через JS
+    div.innerHTML = `
         <div class="appt-time">${statusLabel} ${a.date_time}</div>
         <div class="client-name" style="${isCancelled ? 'text-decoration:line-through;color:#999':''}">👤 ${a.client_name || 'Клиент'}</div>
         <div class="info-row">🐶 ${a.breed || ''} ${a.pet_name ? '('+a.pet_name+')' : ''}</div>
@@ -105,6 +74,28 @@ function createApptCard(a, isArchive, actions) {
         <div class="info-row" style="font-size:12px; margin-top:4px;">📞 ${a.phone}</div>
     `;
 
+    // 2. ТЕПЕРЬ СОЗДАЕМ И ДОБАВЛЯЕМ КНОПКУ (JS)
+    // Она добавится поверх уже существующего HTML и не сломается
+    const canDelete = !isCancelled && !isArchive && actions.onDelete;
+
+    if (canDelete) {
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-appt-del';
+        delBtn.innerText = '🗑';
+
+        delBtn.onclick = (e) => {
+            e.stopPropagation(); // Чтобы не кликалась карточка
+
+            // alert(`DEBUG: Удаляем ID ${a.id}`); // Можешь раскомментировать для проверки
+
+            actions.onDelete(a.id);
+        };
+
+        // Добавляем кнопку В КОНЕЦ, но благодаря CSS position:absolute она встанет в угол
+        div.appendChild(delBtn);
+    }
+
+    // Кнопка звонка (тоже добавляем через JS, чтобы работала)
     if (!isArchive && !isCancelled && actions.onCopyPhone) {
         const phoneBtn = document.createElement('div');
         phoneBtn.className = 'copy-phone-btn';
