@@ -1,4 +1,4 @@
-import { _sb } from '../core/suppabase.js';
+import { _sb } from '../core/supabase.js';
 import { tg, showAlert } from '../core/tg.js';
 import { getMasterId, copyToClipboard } from '../shared/utils.js';
 import { renderAdminServices } from '../ui/services.js';

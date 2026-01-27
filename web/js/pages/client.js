@@ -1,4 +1,4 @@
-import { _sb } from '../core/suppabase.js';
+import { _sb } from '../core/supabase.js';
 import { tg, showAlert, initTg } from '../core/tg.js';
 import { getMasterId, applyPhoneMask } from '../shared/utils.js';
 import { renderClientCategories, renderClientServices } from '../ui/services.js';
