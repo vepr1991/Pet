@@ -1,5 +1,5 @@
 import { _sb } from '../core/supabase.js';
-import { tg, showAlert, closeApp } from '../core/tg.js';
+import { tg, showAlert } from '../core/tg.js';
 import { renderClientServices, renderClientCategories } from '../ui/services.js';
 
 // --- СОСТОЯНИЕ ---
@@ -8,7 +8,7 @@ let state = {
     masterInfo: null,
     services: [],
     appointments: [],
-    selectedPetType: 'Собака', // По умолчанию
+    selectedPetType: 'Собака',
     selectedService: null,
     selectedDate: null,
     selectedTime: null
@@ -19,18 +19,18 @@ async function init() {
     const params = new URLSearchParams(window.location.search);
     state.masterId = params.get('start') || params.get('master_id');
 
-    // Если ID нет (тест), берем какой-нибудь дефолтный или свой
-    if (!state.masterId && tg.initDataUnsafe?.user?.id) {
-        state.masterId = tg.initDataUnsafe.user.id;
+    // Fallback для тестов
+    if (!state.masterId && tg.initDataUnsafe?.start_param) {
+        state.masterId = tg.initDataUnsafe.start_param;
     }
 
     if (!state.masterId) {
-        document.body.innerHTML = "<div style='padding:20px;text-align:center'>❌ Ссылка недействительна (нет ID мастера)</div>";
+        document.body.innerHTML = "<div style='padding:20px;text-align:center'>❌ Ошибка: Нет ID мастера</div>";
         return;
     }
 
     await loadMasterData();
-    renderStep1_PetType(); // Запускаем первый шаг
+    renderStep1_PetType();
 }
 
 // --- ЗАГРУЗКА ДАННЫХ ---
@@ -38,19 +38,21 @@ async function loadMasterData() {
     // 1. Инфо о мастере
     const { data: mData } = await _sb.from('masters').select('*').eq('telegram_id', state.masterId).single();
     state.masterInfo = mData;
+
     if (mData) {
-        document.getElementById('header-title').innerText = mData.studio_name || 'Запись';
+        const titleEl = document.getElementById('header-title');
+        if(titleEl) titleEl.innerText = mData.studio_name || 'Запись';
     }
 
     // 2. Услуги
-    const { data: sData } = await _sb.from('services').select('*').eq('master_id', state.masterId).eq('is_active', true);
+    const { data: sData } = await _sb.from('services').select('*').eq('master_id', state.masterId);
     state.services = sData || [];
 
-    // 3. Занятые слоты (будущие)
+    // 3. Занятые слоты (будущие, не отмененные)
     const { data: aData } = await _sb.from('appointments')
         .select('date_time')
         .eq('master_id', state.masterId)
-        .neq('status', 'cancelled'); // Не берем отмененные
+        .neq('status', 'cancelled');
     state.appointments = aData || [];
 }
 
@@ -59,6 +61,8 @@ async function loadMasterData() {
 // ==========================================
 function renderStep1_PetType() {
     const container = document.getElementById('main-container');
+    if(!container) return;
+
     container.innerHTML = `
         <div class="card">
             <div class="section-label" style="margin-top:0">1. Кто ваш питомец?</div>
@@ -80,7 +84,6 @@ function renderStep1_PetType() {
         <div id="step2-container"></div>
     `;
 
-    // Сразу грузим услуги для "Собаки"
     state.selectedPetType = 'Собака';
     renderStep2_Services();
 }
@@ -90,10 +93,13 @@ window.selectPetType = (type, el) => {
     document.querySelectorAll('.select-card').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
 
-    // Сброс выбора
+    // Сброс последующих шагов при смене питомца
     state.selectedService = null;
     state.selectedDate = null;
     state.selectedTime = null;
+
+    const s2 = document.getElementById('step2-container');
+    if(s2) s2.innerHTML = '';
 
     renderStep2_Services();
 };
@@ -104,12 +110,8 @@ window.selectPetType = (type, el) => {
 function renderStep2_Services() {
     const container = document.getElementById('step2-container');
 
-    // Фильтруем услуги по типу питомца (примерная логика категорий)
-    // Если категория содержит название питомца - показываем
+    // Фильтруем услуги
     let relevantServices = state.services;
-
-    // Простая фильтрация: если выбрали Кошку, показываем категории "Кошки..."
-    // Если Собаку - "Собаки..."
     if (state.selectedPetType === 'Кошка') {
         relevantServices = state.services.filter(s => s.category && s.category.toLowerCase().includes('кошк'));
     } else if (state.selectedPetType === 'Собака') {
@@ -128,20 +130,16 @@ function renderStep2_Services() {
     const sList = document.getElementById('services-list');
     const cList = document.getElementById('cats-container');
 
-    // Рендер категорий
     const initialCat = renderClientCategories(cList, relevantServices, (cat) => {
         renderClientServices(sList, relevantServices, cat, selectService);
     });
 
-    // Рендер услуг первой категории
     renderClientServices(sList, relevantServices, initialCat, selectService);
 }
 
 function selectService(service) {
     state.selectedService = service;
     renderStep3_DateTime();
-
-    // Скролл к следующему шагу
     setTimeout(() => document.getElementById('step3-container').scrollIntoView({behavior: 'smooth'}), 100);
 }
 
@@ -155,7 +153,6 @@ function renderStep3_DateTime() {
     container.innerHTML = `
         <div class="card">
             <div class="section-label" style="margin-top:0">3. Дата и время</div>
-
             <div class="cal-header">
                 <b id="cal-month-label"></b>
             </div>
@@ -177,12 +174,14 @@ function renderCalendar(date) {
     const label = document.getElementById('cal-month-label');
     const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 
-    label.innerText = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+    if(label) label.innerText = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+    if(!grid) return;
+
     grid.innerHTML = '';
 
     const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const today = new Date();
-    today.setHours(0,0,0,0); // Обнуляем время для корректного сравнения
+    today.setHours(0,0,0,0);
 
     for (let i = 1; i <= daysInMonth; i++) {
         const d = new Date(date.getFullYear(), date.getMonth(), i);
@@ -190,14 +189,14 @@ function renderCalendar(date) {
         el.className = 'day';
         el.innerText = i;
 
-        // Если день прошел - дизейблим
+        // Прошедшие дни - серые
         if (d < today) {
             el.classList.add('disabled');
         } else {
             el.onclick = () => selectDate(d, el);
         }
 
-        // Если это сегодня - можно выделить (опционально)
+        // Сегодняшний день - выделяем
         if (d.getTime() === today.getTime()) {
             el.style.border = "1px solid var(--accent)";
             el.style.color = "var(--accent)";
@@ -210,16 +209,14 @@ function renderCalendar(date) {
 function selectDate(date, el) {
     state.selectedDate = date;
 
-    // Визуал
     document.querySelectorAll('.day').forEach(d => {
         d.classList.remove('active');
-        d.style.background = ''; // Сброс "сегодня"
+        d.style.background = '';
         d.style.color = '';
     });
     el.classList.add('active');
-    el.style.border = 'none'; // Убираем рамку "сегодня", если она была
+    el.style.border = 'none';
 
-    // Показываем время
     document.getElementById('time-container').style.display = 'block';
     renderTimeSlots(date);
 }
@@ -229,11 +226,8 @@ function renderTimeSlots(date) {
     grid.innerHTML = '';
 
     const times = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
-
-    // Формат даты для сравнения с базой: DD.MM.YYYY
     const dateStr = date.toLocaleDateString('ru-RU');
 
-    // Текущее время для проверки "прошедших" слотов сегодня
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
     const currentHour = now.getHours();
@@ -243,12 +237,10 @@ function renderTimeSlots(date) {
         tDiv.className = 'time-slot';
         tDiv.innerText = time;
 
-        // 1. Проверка: ЗАНЯТО ЛИ?
-        // Ищем в state.appointments запись с такой датой и временем
         const fullDateTime = `${dateStr} ${time}`;
         const isBusy = state.appointments.some(a => a.date_time === fullDateTime);
 
-        // 2. Проверка: ПРОШЛО ЛИ?
+        // ЛОГИКА: Если сегодня, то часы <= текущего часа считаем прошедшими
         let isPast = false;
         if (isToday) {
             const slotHour = parseInt(time.split(':')[0]);
@@ -257,9 +249,9 @@ function renderTimeSlots(date) {
 
         if (isBusy) {
             tDiv.classList.add('busy');
-            tDiv.innerText = "Занято"; // Можно оставить время, если хотите
+            tDiv.innerText = "Занято";
         } else if (isPast) {
-            tDiv.classList.add('past'); // Добавляем класс для серого цвета
+            tDiv.classList.add('past'); // Добавляем CSS класс для серого цвета
         } else {
             tDiv.onclick = () => selectTime(time, tDiv);
         }
@@ -274,11 +266,14 @@ function selectTime(time, el) {
     el.classList.add('active');
 
     renderStep4_Form();
-    setTimeout(() => document.getElementById('step4-container').scrollIntoView({behavior: 'smooth'}), 100);
+    setTimeout(() => {
+        const el = document.getElementById('step4-container');
+        if(el) el.scrollIntoView({behavior: 'smooth'});
+    }, 100);
 }
 
 // ==========================================
-// ШАГ 4: ФОРМА (С ВЕРНУВШИМИСЯ ПОЛЯМИ)
+// ШАГ 4: ФОРМА (ПОЛЯ ВОССТАНОВЛЕНЫ)
 // ==========================================
 function renderStep4_Form() {
     const container = document.getElementById('step4-container');
@@ -288,12 +283,12 @@ function renderStep4_Form() {
         <div class="card">
             <div class="section-label" style="margin-top:0">4. Детали записи</div>
 
-            <div style="font-size:14px; color:#888; margin-bottom:8px;">Ваши данные</div>
+            <div style="font-size:13px; color:#888; margin-bottom:6px;">Ваши данные</div>
             <input type="text" id="client-name" placeholder="Ваше имя" value="${user.first_name || ''}">
             <input type="tel" id="client-phone" placeholder="Телефон (+7...)">
 
-            <div style="font-size:14px; color:#888; margin-bottom:8px; margin-top:12px;">Данные питомца</div>
-            <input type="text" id="pet-breed" placeholder="Порода (например, Корги)">
+            <div style="font-size:13px; color:#888; margin-bottom:6px; margin-top:10px;">Данные питомца</div>
+            <input type="text" id="pet-breed" placeholder="Порода (например, Шпиц)">
             <input type="text" id="pet-name" placeholder="Кличка питомца">
 
             <div style="margin-top:20px; font-size:13px; color:#666; text-align:center;">
@@ -301,9 +296,9 @@ function renderStep4_Form() {
                 Услуга: ${state.selectedService.name} (${state.selectedService.price} ₸)
             </div>
 
-            <button class="btn" style="margin-top:16px;" onclick="submitBooking()">✅ Подтвердить запись</button>
+            <button class="btn" style="margin-top:16px;" onclick="submitBooking()">✅ Записаться</button>
         </div>
-        <div style="height:40px"></div>
+        <div style="height:60px"></div>
     `;
 }
 
@@ -326,11 +321,10 @@ window.submitBooking = async () => {
         breed: breed || 'Не указана',
         pet_name: petName || 'Без клички',
         phone: phone,
-        username: tg.initDataUnsafe?.user?.username // Добавляем username для связи
+        username: tg.initDataUnsafe?.user?.username || ''
     };
 
     tg.sendData(JSON.stringify(payload));
 };
 
-// Запуск
 init();

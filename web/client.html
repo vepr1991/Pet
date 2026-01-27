@@ -3,53 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Запись к мастеру</title>
     <link rel="stylesheet" href="css/style.css">
-
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="card" id="master-card" style="padding: 12px;"> <div class="master-profile">
-            <img id="m-avatar" src="" style="display:none;" class="mp-avatar">
-
-            <div class="mp-info">
-                <h2 id="studio-name">Загрузка...</h2>
-                <div id="m-address" class="mp-address" style="display:none;">📍 <span></span></div>
-            </div>
+    <div class="header">
+        <div>
+            <div style="font-size:12px; color:#888; font-weight:500;">Студия груминга</div>
+            <h2 id="header-title">Загрузка...</h2>
         </div>
-        <div id="m-about" class="mp-about" style="display:none;"></div>
     </div>
 
-    <div class="section-label">1. Питомец</div>
-    <div class="grid-3">
-        <div class="select-card" id="pet-dog" onclick="setPetType('Собака','pet-dog')">🐶<br>Собака</div>
-        <div class="select-card" id="pet-cat" onclick="setPetType('Кошка','pet-cat')">🐱<br>Кошка</div>
-        <div class="select-card" id="pet-other" onclick="setPetType('Другой','pet-other')">🐰<br>Другой</div>
-    </div>
-
-    <input type="text" id="p-breed" placeholder="Порода (например: Шпиц) *" style="margin-top:10px;">
-    <input type="text" id="p-name" placeholder="Кличка питомца *">
-
-    <div class="section-label">2. Выберите услугу</div>
-    <div class="cat-scroll" id="category-filter"></div>
-    <div id="services-container" style="min-height: 50px;">Загрузка...</div>
-
-    <div class="section-label">3. Дата и время</div>
-    <div class="card">
-        <div class="cal-header">
-            <button onclick="changeMonth(-1)" style="font-size:18px;border:none;background:none;color:var(--accent)">❮</button>
-            <b id="month-label">...</b>
-            <button onclick="changeMonth(1)" style="font-size:18px;border:none;background:none;color:var(--accent)">❯</button>
+    <div id="main-container">
+        <div style="text-align:center; padding:40px; color:#999;">
+            <div id="loader" style="font-size:24px; margin-bottom:10px;">⏳</div>
+            <div>Загрузка данных...</div>
         </div>
-        <div class="cal-grid" id="calendar"></div>
-        <div id="loader-time" style="display:none; text-align:center; margin-top:10px; color:#999; font-size:12px;">Проверка...</div>
-        <div class="time-grid" id="time-slots"></div>
     </div>
-
-    <div class="section-label">4. Ваши контакты</div>
-    <input type="tel" id="p-phone" placeholder="+7 (___) ___-__-__ *">
-
-    <button class="btn" onclick="sendBooking()" style="margin-top: 20px;">Записаться</button>
 
     <script type="module" src="js/pages/client.js"></script>
 </body>
