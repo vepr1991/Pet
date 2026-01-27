@@ -53,12 +53,12 @@ body {
     box-shadow: var(--shadow-soft);
 }
 
-/* --- 5. ПРОФИЛЬ МАСТЕРА (НОВОЕ: КОМПАКТНЫЙ ВИД) --- */
+/* --- 5. ПРОФИЛЬ МАСТЕРА (КОМПАКТНЫЙ ВИД) --- */
 .master-profile {
     display: flex;
     gap: 12px;
     align-items: center;
-    margin-bottom: 0; /* Убрали лишний отступ */
+    margin-bottom: 0;
 }
 .mp-avatar {
     width: 40px;
@@ -71,7 +71,7 @@ body {
 .mp-info { flex: 1; }
 .mp-info h2 {
     margin: 0;
-    font-size: 16px; /* Чуть меньше шрифт */
+    font-size: 16px;
     font-weight: 700;
     line-height: 1.1;
     color: var(--text);
@@ -106,13 +106,16 @@ input {
     box-sizing: border-box;
     transition: var(--transition);
     color: var(--text);
-    -webkit-appearance: none; /* Убирает стили браузера по умолчанию */
+    -webkit-appearance: none;
 }
 input::placeholder { color: #C7C7CC; }
 input:focus {
     border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 0 4px var(--accent-soft); /* Эффект свечения при фокусе */
+    box-shadow: 0 0 0 4px var(--accent-soft);
+}
+textarea {
+    font-family: inherit;
 }
 
 /* --- 7. ВКЛАДКИ (TABS) --- */
@@ -137,7 +140,7 @@ input:focus {
 }
 .btn:active { transform: scale(0.97); opacity: 0.9; }
 
-/* Круглая кнопка удаления (маленькая) */
+/* Круглая кнопка удаления (маленькая, для услуг) */
 .btn-del {
     width: 28px; height: 28px; border-radius: 50%;
     background: var(--danger-soft); color: var(--danger);
@@ -160,11 +163,12 @@ input:focus {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding-right: 48px; /* Отступ справа, чтобы текст не налез на кнопку удаления */
+    /* Важный отступ справа, чтобы текст не налез на кнопку удаления */
+    padding-right: 48px;
 }
 .appt-card.past { opacity: 0.6; background: #f9f9f9; }
 
-/* Кнопка удаления записи */
+/* Кнопка удаления записи (КОРЗИНА) */
 .btn-appt-del {
     position: absolute;
     top: 12px;
@@ -183,6 +187,8 @@ input:focus {
     cursor: pointer;
     transition: var(--transition);
     padding: 0;
+
+    /* --- КРИТИЧЕСКИ ВАЖНО ДЛЯ КЛИКА --- */
     z-index: 100 !important; /* Поднимаем кнопку над текстом */
     pointer-events: auto;    /* Гарантируем, что она ловит клики */
 }
