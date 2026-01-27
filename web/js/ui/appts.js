@@ -9,40 +9,40 @@ export function renderApptsList(container, appointments, actions) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
+    // Подготовка дат
     appointments.forEach(item => {
         item._jsDate = item.date_time ? parseDateTime(item.date_time) : new Date(0);
     });
 
-    const future = appointments.filter(i =>
-        i.status !== 'cancelled' && i._jsDate >= todayStart
-    ).sort((a,b) => a._jsDate - b._jsDate);
+    // Сортировка: Свежие (будущие) и Архив (прошлые/отмененные)
+    const future = appointments.filter(i => i.status !== 'cancelled' && i._jsDate >= todayStart)
+        .sort((a,b) => a._jsDate - b._jsDate);
 
-    const archive = appointments.filter(i =>
-        i.status === 'cancelled' || i._jsDate < todayStart
-    ).sort((a,b) => b._jsDate - a._jsDate);
+    const archive = appointments.filter(i => i.status === 'cancelled' || i._jsDate < todayStart)
+        .sort((a,b) => b._jsDate - a._jsDate);
 
     container.innerHTML = '';
 
-    // Рендер Актуальных
+    // 1. Рендер Актуальных
     if (future.length > 0) {
         future.forEach(a => container.appendChild(createApptCard(a, false, actions)));
     } else {
         container.innerHTML += `<div style="text-align:center; padding:20px; color:#aaa">Нет актуальных записей</div>`;
     }
 
-    // Рендер Архива
+    // 2. Рендер Архива (сворачиваемый список)
     if (archive.length > 0) {
         const archiveContainer = document.createElement('div');
         archiveContainer.className = 'archive-container';
 
         const btn = document.createElement('div');
         btn.className = 'archive-btn';
+        btn.innerHTML = `<span>🗄 Архив (${archive.length})</span> <span>▼</span>`;
         btn.onclick = function() {
             this.classList.toggle('open');
             const list = this.nextElementSibling;
             list.style.display = list.style.display === "block" ? "none" : "block";
         };
-        btn.innerHTML = `<span>🗄 Архив (${archive.length})</span> <span class="archive-arrow">▼</span>`;
 
         const arcList = document.createElement('div');
         arcList.className = 'archive-list';
@@ -56,52 +56,79 @@ export function renderApptsList(container, appointments, actions) {
     }
 }
 
+// --- ФУНКЦИЯ СОЗДАНИЯ ОДНОЙ КАРТОЧКИ ---
 function createApptCard(a, isArchive, actions) {
     const div = document.createElement('div');
     const isCancelled = a.status === 'cancelled';
     div.className = `card appt-card ${isArchive || isCancelled ? 'past' : ''}`;
 
-    let statusLabel = isArchive ? '🏁' : '📅';
-    if (isCancelled) statusLabel = '<span style="color:red">❌ Отменено</span>';
+    // Иконка статуса
+    let statusLabel = isCancelled ? '<span style="color:var(--danger)">❌ Отменено</span>' : (isArchive ? '🏁' : '📅');
 
-    // 1. СНАЧАЛА ПИШЕМ HTML (ТЕКСТ)
-    // Важно сделать это до того, как мы добавим кнопку через JS
+    // HTML контент (Информация)
     div.innerHTML = `
         <div class="appt-time">${statusLabel} ${a.date_time}</div>
-        <div class="client-name" style="${isCancelled ? 'text-decoration:line-through;color:#999':''}">👤 ${a.client_name || 'Клиент'}</div>
+        <div class="client-name" style="${isCancelled ? 'text-decoration:line-through;color:#999':''}">
+            👤 ${a.client_name || 'Клиент'}
+        </div>
         <div class="info-row">🐶 ${a.breed || ''} ${a.pet_name ? '('+a.pet_name+')' : ''}</div>
         <div class="info-row">✂️ ${a.service}</div>
-        <div class="info-row" style="font-size:12px; margin-top:4px;">📞 ${a.phone}</div>
+        <div class="info-row" style="font-size:13px; margin-top:4px; color:#666;">📞 ${a.phone}</div>
     `;
 
-    // 2. ТЕПЕРЬ СОЗДАЕМ И ДОБАВЛЯЕМ КНОПКУ (JS)
-    // Она добавится поверх уже существующего HTML и не сломается
-    const canDelete = !isCancelled && !isArchive && actions.onDelete;
-
-    if (canDelete) {
+    // Кнопка Удаления (Корзина)
+    if (!isCancelled && !isArchive && actions.onDelete) {
         const delBtn = document.createElement('button');
         delBtn.className = 'btn-appt-del';
-        delBtn.innerText = '🗑';
-
-        delBtn.onclick = (e) => {
-            e.stopPropagation(); // Чтобы не кликалась карточка
-
-            // alert(`DEBUG: Удаляем ID ${a.id}`); // Можешь раскомментировать для проверки
-
-            actions.onDelete(a.id);
-        };
-
-        // Добавляем кнопку В КОНЕЦ, но благодаря CSS position:absolute она встанет в угол
+        delBtn.innerHTML = '🗑'; // Можно иконку SVG, но эмодзи надежнее
+        delBtn.onclick = (e) => { e.stopPropagation(); actions.onDelete(a.id); };
         div.appendChild(delBtn);
     }
 
-    // Кнопка звонка (тоже добавляем через JS, чтобы работала)
-    if (!isArchive && !isCancelled && actions.onCopyPhone) {
-        const phoneBtn = document.createElement('div');
-        phoneBtn.className = 'copy-phone-btn';
-        phoneBtn.innerHTML = `📞 Позвонить`;
-        phoneBtn.onclick = () => actions.onCopyPhone(a.phone);
-        div.appendChild(phoneBtn);
+    // БЛОК КНОПОК ДЕЙСТВИЙ (Только для активных записей)
+    if (!isArchive && !isCancelled) {
+        const btnsRow = document.createElement('div');
+        btnsRow.style.display = 'flex';
+        btnsRow.style.gap = '8px';
+        btnsRow.style.marginTop = '12px';
+
+        // [КНОПКА 1] НАПИСАТЬ (Зеленая) - Появляется только если есть username
+        if (a.username) {
+            const chatBtn = document.createElement('div');
+            chatBtn.className = 'copy-phone-btn';
+            chatBtn.style.flex = '1';
+            // Стили зеленой кнопки
+            chatBtn.style.background = 'rgba(52, 199, 89, 0.15)';
+            chatBtn.style.color = '#2da84e'; // iOS Green
+            chatBtn.innerHTML = `💬 Написать`;
+
+            chatBtn.onclick = (e) => {
+                e.stopPropagation();
+                const cleanUser = a.username.replace('@', '').replace('https://t.me/', '');
+                // Открываем нативную ссылку Telegram
+                if (window.Telegram?.WebApp?.openTelegramLink) {
+                    window.Telegram.WebApp.openTelegramLink(`https://t.me/${cleanUser}`);
+                } else {
+                    window.open(`https://t.me/${cleanUser}`, '_blank');
+                }
+            };
+            btnsRow.appendChild(chatBtn);
+        }
+
+        // [КНОПКА 2] ПОЗВОНИТЬ (Серая)
+        if (a.phone && actions.onCopyPhone) {
+            const callBtn = document.createElement('div');
+            callBtn.className = 'copy-phone-btn';
+            callBtn.style.flex = '1';
+            callBtn.innerHTML = `📞 Скопировать`;
+            callBtn.onclick = (e) => {
+                e.stopPropagation();
+                actions.onCopyPhone(a.phone);
+            };
+            btnsRow.appendChild(callBtn);
+        }
+
+        div.appendChild(btnsRow);
     }
 
     return div;
