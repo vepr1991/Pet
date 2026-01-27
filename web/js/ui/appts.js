@@ -120,7 +120,7 @@ function createApptCard(a, isArchive, actions) {
             const callBtn = document.createElement('div');
             callBtn.className = 'copy-phone-btn';
             callBtn.style.flex = '1';
-            callBtn.innerHTML = `📞 Скопировать`;
+            callBtn.innerHTML = `📞 Позвонить`;
             callBtn.onclick = (e) => {
                 e.stopPropagation();
                 actions.onCopyPhone(a.phone);
