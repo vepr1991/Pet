@@ -11,11 +11,10 @@ let state = {
 
 async function init() {
     const params = new URLSearchParams(window.location.search);
-    // Ищем ID мастера всеми способами
     state.masterId = params.get('master_id') || params.get('master') || tg.initDataUnsafe?.user?.id;
 
     if (!state.masterId) {
-        document.body.innerHTML = `<div style="padding:40px; text-align:center;">❌ ID мастера не найден. Перезапустите бота.</div>`;
+        document.body.innerHTML = `<div style="padding:50px; text-align:center; color:red;">❌ ID мастера не найден в URL и в данных TG.</div>`;
         return;
     }
 
@@ -25,9 +24,15 @@ async function init() {
     try {
         await loadData();
     } catch (e) {
-        console.error("Critical Load Error:", e);
-        const title = document.getElementById('header-title');
-        if (title) title.innerText = "Ошибка загрузки";
+        // Выводим ошибку прямо на экран для диагностики
+        const container = document.getElementById('appts-container') || document.body;
+        container.innerHTML = `
+            <div style="padding:20px; text-align:center; color:#FF3B30;">
+                <b style="font-size:18px;">🛑 Ошибка загрузки:</b><br>
+                <code style="display:block; margin-top:10px; background:#eee; padding:10px; border-radius:5px;">${e.message}</code>
+                <button onclick="location.reload()" class="btn" style="margin-top:15px;">🔄 Повторить</button>
+            </div>
+        `;
     }
 }
 
