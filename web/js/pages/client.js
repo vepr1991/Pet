@@ -26,8 +26,12 @@ async function init() {
     const { data: m } = await _sb.from('masters').select('*').eq('telegram_id', mId).single();
     if (m) renderMasterHeader(m);
 
-    // 2. Загрузка услуг
-    const { data: srv } = await _sb.from('services').select('*').eq('master_id', mId);
+    // 2. Загрузка услуг (Только активные!)
+    const { data: srv } = await _sb
+        .from('services')
+        .select('*')
+        .eq('master_id', mId)
+        .eq('is_active', true);
     allServices = srv || [];
 
     // Рендер категорий и календаря

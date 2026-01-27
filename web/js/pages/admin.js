@@ -14,7 +14,7 @@ async function init() {
         document.body.innerHTML = "<div style='padding:50px; text-align:center;'>⚠️ ID мастера не найден.</div>";
         return;
     }
-    initModal(); // Подключаем модалку
+    initModal();
     await refreshData();
 }
 
@@ -26,12 +26,14 @@ async function refreshData() {
 async function loadMaster() {
     const { data } = await _sb.from('masters').select('*').eq('telegram_id', mId).single();
     if (data) {
-        document.getElementById('header-studio-name').innerText = data.studio_name;
-        // Заполняем форму профиля
+        document.getElementById('header-studio-name').innerText = data.studio_name || 'Студия';
+
+        // Заполняем поля профиля
         document.getElementById('pf-name').value = data.studio_name || '';
         document.getElementById('pf-address').value = data.address || '';
         document.getElementById('pf-about').value = data.about_text || '';
         document.getElementById('pf-photo').value = data.photo_url || '';
+
         updatePreview(data.photo_url);
     }
 }
@@ -55,28 +57,35 @@ async function loadAppts() {
 
 async function loadServices() {
     const list = document.getElementById('services-list');
-    const { data } = await _sb.from('services').select('*').eq('master_id', mId).order('category');
+    // ИСПРАВЛЕНИЕ: Загружаем только АКТИВНЫЕ услуги
+    const { data } = await _sb
+        .from('services')
+        .select('*')
+        .eq('master_id', mId)
+        .eq('is_active', true) // <-- Важный фильтр
+        .order('category');
 
     renderAdminServices(list, data, (id) => askDelete(id, 'service'));
 }
 
-// --- ДЕЙСТВИЯ (ADD / DELETE / SAVE) ---
+// --- ДЕЙСТВИЯ ---
 async function addService() {
     const name = document.getElementById('srv-name').value;
     const cat = document.getElementById('srv-category').value || 'Основное';
     const price = document.getElementById('srv-price').value;
-    const duration = document.getElementById('srv-duration')?.value || 60; // Если поле есть
+    const duration = document.getElementById('srv-duration')?.value || 60;
     const desc = document.getElementById('srv-desc').value;
     const img = document.getElementById('srv-image').value;
 
     if(!name || !price) return showAlert("Нужно название и цена");
 
+    // При создании ставим is_active: true (хотя default в БД и так true)
     await _sb.from('services').insert([{
         master_id: mId, name, category: cat, price: Number(price),
-        duration: Number(duration), description: desc, image_url: img
+        duration: Number(duration), description: desc, image_url: img,
+        is_active: true
     }]);
 
-    // Очистка
     document.querySelectorAll('#tab-services input').forEach(i => i.value = '');
     await loadServices();
 }
@@ -85,9 +94,11 @@ function askDelete(id, type) {
     const text = type === 'service' ? "Удалить услугу?" : "Отменить запись?";
     showConfirmModal(text, async () => {
         if (type === 'service') {
-            await _sb.from('services').delete().eq('id', id);
+            // ИСПРАВЛЕНИЕ: Не удаляем, а скрываем (Soft Delete)
+            await _sb.from('services').update({ is_active: false }).eq('id', id);
             await loadServices();
         } else {
+            // Для записей тоже Soft Delete (статус cancelled)
             await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', id);
             await loadAppts();
         }
@@ -106,8 +117,12 @@ async function saveProfile() {
     const oldText = btn.innerText;
     btn.innerText = "Сохранение..."; btn.disabled = true;
 
+    // Теперь поля address, about_text, photo_url существуют в БД, ошибки не будет
     const { error } = await _sb.from('masters').update({
-        studio_name: name, address, about_text: about, photo_url: photo
+        studio_name: name,
+        address: address,
+        about_text: about,
+        photo_url: photo
     }).eq('telegram_id', mId);
 
     btn.innerText = oldText; btn.disabled = false;
@@ -115,7 +130,7 @@ async function saveProfile() {
     if (error) showAlert("Ошибка: " + error.message);
     else {
         showAlert("✅ Профиль сохранен!");
-        loadMaster(); // Обновить заголовок
+        loadMaster();
     }
 }
 
@@ -136,12 +151,10 @@ function showTab(id, el) {
     el.classList.add('active');
 }
 
-// --- ЭКСПОРТ В ГЛОБАЛЬНУЮ ОБЛАСТЬ (ЧТОБЫ HTML ВИДЕЛ) ---
 window.refreshData = refreshData;
 window.addService = addService;
 window.saveProfile = saveProfile;
 window.updatePreview = updatePreview;
 window.showTab = showTab;
 
-// Запуск
 init();
