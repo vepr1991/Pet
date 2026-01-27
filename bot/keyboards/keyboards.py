@@ -18,8 +18,8 @@ def get_main_kb(user_id, admin_id, for_master=None):
         studio = for_master.get('studio_name', 'студию')
         m_id = for_master.get('telegram_id')
 
-        # ИСПРАВЛЕНИЕ: Заменили ?master= на ?master_id=
-        # Теперь JS в client.js (params.get('master_id')) его увидит!
+        # ВАЖНО: Исправили ?master= на ?master_id=
+        # Теперь это совпадает с тем, что ищет client.js
         return ReplyKeyboardMarkup(keyboard=[
             [KeyboardButton(
                 text=f"🐾 Записаться в {studio}",
@@ -31,7 +31,6 @@ def get_main_kb(user_id, admin_id, for_master=None):
     if is_admin:
         return ReplyKeyboardMarkup(keyboard=[
             [KeyboardButton(text="📊 Посмотреть записи (Все)")],
-            # ИСПРАВЛЕНИЕ: Здесь тоже для порядка добавим _id
             [KeyboardButton(text="⚙️ Админ-панель", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master_id={u_id}"))],
             [KeyboardButton(text="🔗 Моя ссылка")]
         ], resize_keyboard=True)
@@ -39,7 +38,6 @@ def get_main_kb(user_id, admin_id, for_master=None):
     # 3. МАСТЕР
     if is_master:
         return ReplyKeyboardMarkup(keyboard=[
-            # ИСПРАВЛЕНИЕ: Здесь тоже для порядка добавим _id
             [KeyboardButton(text="⚙️ Панель мастера", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master_id={u_id}"))],
             [KeyboardButton(text="🔗 Моя ссылка")]
         ], resize_keyboard=True)

@@ -38,54 +38,54 @@ async def handle_booking_data(message: types.Message):
     """Принимаем данные записи и уведомляем мастера"""
     try:
         data = json.loads(message.web_app_data.data)
-        client_tg_name = message.from_user.full_name
 
-        # --- ИСПРАВЛЕНИЕ: Берем username ---
-        # Сначала пробуем взять из профиля отправителя (это надежнее всего)
-        # Если там пусто, берем то, что прислал JS
-        client_username = message.from_user.username or data.get('username') or ""
-
+        # Получаем данные из JSON
         m_id = data.get('master_id')
         dt = f"{data.get('date')} {data.get('time')}"
+        client_tg_name = message.from_user.full_name
+        client_username = message.from_user.username
 
-        breed_info = f"{data.get('pet_type', 'Питомец')} ({data.get('breed', 'Не указано')})"
-
-        # 1. Записываем в базу (Теперь передаем username!)
+        # 1. Сохранение в базу
+        # Передаем чистые данные, чтобы в БД было красиво
         db.add_appointment(
             user_id=message.from_user.id,
-            breed=breed_info,
+            breed=data.get('breed', 'Не указана'),
             pet_name=data.get('pet_name', 'Без клички'),
             service=data.get('service', 'Груминг'),
             date_time=dt,
             phone=data.get('phone'),
             master_id=int(m_id),
             client_name=client_tg_name,
-            username=client_username  # <--- ВОТ ЗДЕСЬ БЫЛО ПУСТО
+            username=client_username
         )
 
-        # 2. Уведомление мастеру
+        # 2. Уведомление мастеру (ДЕТАЛЬНОЕ)
         user_link = f"@{client_username}" if client_username else "скрыт"
 
         notification = (
             f"🚀 <b>Новая запись!</b>\n\n"
             f"👤 <b>Клиент:</b> {client_tg_name} ({user_link})\n"
-            f"🐶 <b>Питомец:</b> {breed_info}\n"
+            f"🐾 <b>Вид:</b> {data.get('pet_type')}\n"  # Отдельная строка
+            f"🐶 <b>Порода:</b> {data.get('breed')}\n"  # Отдельная строка
             f"📛 <b>Кличка:</b> {data.get('pet_name')}\n"
             f"📅 <b>Время:</b> {dt}\n"
             f"✂️ <b>Услуга:</b> {data.get('service')}\n"
             f"📞 <b>Телефон:</b> <code>{data.get('phone')}</code>"
         )
+
+        # Отправляем мастеру
         await message.bot.send_message(int(m_id), notification, parse_mode="HTML")
 
         # 3. Подтверждение клиенту
         master_info = db.get_master_info(m_id)
+        studio = master_info['studio_name'] if master_info else 'Студию'
+
         await message.answer(
-            f"✅ <b>Запись в «{master_info['studio_name']}» успешно создана!</b>\n\n"
-            f"Мастер свяжется с вами в ближайшее время.",
-            parse_mode="HTML",
-            reply_markup=kb.get_main_kb(message.from_user.id, ADMIN_ID, for_master=master_info)
+            f"✅ <b>Запись в «{studio}» подтверждена!</b>\n\n"
+            f"Ждем вас {dt}.\nЕсли планы изменятся, пожалуйста, сообщите мастеру.",
+            parse_mode="HTML"
         )
 
     except Exception as e:
-        print(f"Ошибка записи: {e}")
-        await message.answer("❌ Ошибка при создании записи. Попробуйте еще раз.")
+        print(f"Error in handle_booking_data: {e}")
+        await message.answer("❌ Произошла ошибка при сохранении записи. Попробуйте еще раз.")
