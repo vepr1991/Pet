@@ -52,23 +52,28 @@ async function init() {
 }
 
 async function loadMasterData() {
-    // 1. Инфо о мастере
-    const { data: mData } = await _sb.from('masters').select('*').eq('telegram_id', state.masterId).single();
-    if (mData) {
-        state.masterInfo = mData;
-        document.getElementById('header-title').innerText = mData.studio_name || 'Запись';
+    // 1. Формируем запросы (но пока не ждем ответа, просто запускаем)
+    const masterPromise = _sb.from('masters').select('*').eq('telegram_id', state.masterId).single();
+    const servicesPromise = _sb.from('services').select('*').eq('master_id', state.masterId);
+    const appointmentsPromise = _sb.from('appointments').select('date_time').eq('master_id', state.masterId).neq('status', 'cancelled');
+
+    // 2. Ждем выполнения ВСЕХ запросов сразу (это в 3 раза быстрее)
+    const [mResult, sResult, aResult] = await Promise.all([
+        masterPromise,
+        servicesPromise,
+        appointmentsPromise
+    ]);
+
+    // 3. Обрабатываем результаты
+    if (mResult.data) {
+        state.masterInfo = mResult.data;
+        document.getElementById('header-title').innerText = mResult.data.studio_name || 'Запись';
+    } else {
+        throw new Error("Мастер не найден"); // Или обработать ошибку мягче
     }
 
-    // 2. Услуги
-    const { data: sData } = await _sb.from('services').select('*').eq('master_id', state.masterId);
-    state.services = sData || [];
-
-    // 3. Занятые слоты
-    const { data: aData } = await _sb.from('appointments')
-        .select('date_time')
-        .eq('master_id', state.masterId)
-        .neq('status', 'cancelled');
-    state.appointments = aData || [];
+    state.services = sResult.data || [];
+    state.appointments = aResult.data || [];
 }
 
 // ... ШАГИ 1 и 2 БЕЗ ИЗМЕНЕНИЙ ...
