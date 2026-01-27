@@ -14,18 +14,16 @@ def get_main_kb(user_id, admin_id, for_master=None):
     is_admin = (u_id == a_id)
 
     # 1. КЛИЕНТСКИЙ ФЛОУ (Если переданы данные мастера)
-    # Убрали проверку "not is_master", чтобы мастер мог видеть клиентскую кнопку,
-    # если перешел по ссылке start (для теста)
     if for_master:
         studio = for_master.get('studio_name', 'студию')
         m_id = for_master.get('telegram_id')
 
-        # Важно: URL должен вести на client.html (или index.html с редиректом)
-        # И параметр master={m_id} обязателен!
+        # ИСПРАВЛЕНИЕ: Заменили ?master= на ?master_id=
+        # Теперь JS в client.js (params.get('master_id')) его увидит!
         return ReplyKeyboardMarkup(keyboard=[
             [KeyboardButton(
                 text=f"🐾 Записаться в {studio}",
-                web_app=WebAppInfo(url=f"{BASE_URL}/client.html?master={m_id}")
+                web_app=WebAppInfo(url=f"{BASE_URL}/client.html?master_id={m_id}")
             )]
         ], resize_keyboard=True)
 
@@ -33,14 +31,16 @@ def get_main_kb(user_id, admin_id, for_master=None):
     if is_admin:
         return ReplyKeyboardMarkup(keyboard=[
             [KeyboardButton(text="📊 Посмотреть записи (Все)")],
-            [KeyboardButton(text="⚙️ Админ-панель", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={u_id}"))],
+            # ИСПРАВЛЕНИЕ: Здесь тоже для порядка добавим _id
+            [KeyboardButton(text="⚙️ Админ-панель", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master_id={u_id}"))],
             [KeyboardButton(text="🔗 Моя ссылка")]
         ], resize_keyboard=True)
 
     # 3. МАСТЕР
     if is_master:
         return ReplyKeyboardMarkup(keyboard=[
-            [KeyboardButton(text="⚙️ Панель мастера", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master={u_id}"))],
+            # ИСПРАВЛЕНИЕ: Здесь тоже для порядка добавим _id
+            [KeyboardButton(text="⚙️ Панель мастера", web_app=WebAppInfo(url=f"{BASE_URL}/admin.html?master_id={u_id}"))],
             [KeyboardButton(text="🔗 Моя ссылка")]
         ], resize_keyboard=True)
 
