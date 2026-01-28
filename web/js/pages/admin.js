@@ -12,6 +12,7 @@ let state = {
 };
 
 async function init() {
+    initTg();
     const titleEl = document.getElementById('header-title');
     if (titleEl) titleEl.innerText = "Запуск...";
 
