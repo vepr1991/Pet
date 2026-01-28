@@ -4,6 +4,7 @@
 export const tg = window.Telegram?.WebApp || null;
 
 export function initTg() {
+  // Сообщаем Telegram, что приложение готово
   if (!tg) return;
   try {
     tg.ready();
@@ -28,8 +29,10 @@ export function showAlert(msg) {
 export function confirmAction(message, title = "Подтверждение") {
   const text = String(message ?? "");
   return new Promise((resolve) => {
+    // 1) Telegram popup (если доступен)
     if (tg?.showPopup) {
       try {
+        // showPopup может работать через callback, а в некоторых обертках — как Promise.
         const maybePromise = tg.showPopup(
           {
             title,
@@ -48,9 +51,11 @@ export function confirmAction(message, title = "Подтверждение") {
         return;
       } catch (e) {
         console.warn("Telegram showPopup error:", e);
+        // fallback ниже
       }
     }
 
+    // 2) Browser fallback
     resolve(confirm(text));
   });
 }

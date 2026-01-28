@@ -15,10 +15,10 @@ function route() {
     const targetMasterId = masterFromUrl || startParam;
 
     if (targetMasterId) {
-        window.location.replace(`client.html?master=${targetMasterId}`);
+        window.location.replace(`client.html?master_id=${targetMasterId}`);
     }
     else if (userId) {
-        window.location.replace(`admin.html?master=${userId}`);
+        window.location.replace(`admin.html?master_id=${userId}`);
     }
     else {
         document.getElementById('loader').innerText = "⚠️ Ошибка: Запустите бота в Telegram";

@@ -1,5 +1,5 @@
 import { _sb } from '../core/supabase.js';
-import { tg, showAlert } from '../core/tg.js';
+import { tg, initTg, showAlert } from '../core/tg.js';
 import { renderClientServices, renderClientCategories } from '../ui/services.js';
 
 let state = {
@@ -30,6 +30,7 @@ function initPhoneMask(input) {
 }
 
 async function init() {
+    initTg();
     const params = new URLSearchParams(window.location.search);
     state.masterId = params.get('master_id') || params.get('start') || params.get('tgWebAppStartParam');
 
