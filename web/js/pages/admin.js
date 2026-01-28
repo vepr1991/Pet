@@ -1,6 +1,8 @@
+// web/js/pages/admin.js
 import { _sb } from '../core/supabase.js';
 import { tg, showAlert, confirmAction } from '../core/tg.js';
 import { renderApptsList } from '../ui/appts.js';
+import { getMasterId } from '../shared/utils.js';
 
 let state = {
     masterId: null,
@@ -10,11 +12,16 @@ let state = {
 };
 
 async function init() {
-    const params = new URLSearchParams(window.location.search);
-    state.masterId = params.get('master_id') || params.get('master') || tg.initDataUnsafe?.user?.id;
+    const titleEl = document.getElementById('header-title');
+    if (titleEl) titleEl.innerText = "Запуск...";
+
+    // 1. Получаем ID через общую утилиту
+    state.masterId = getMasterId();
+    console.log("🔍 Admin initialized for master:", state.masterId);
 
     if (!state.masterId) {
-        document.body.innerHTML = `<div style="padding:50px; text-align:center; color:red;">❌ ID мастера не найден в URL и в данных TG.</div>`;
+        if (titleEl) titleEl.innerText = "ID не найден";
+        document.body.innerHTML = `<div style="padding:50px; text-align:center;">❌ ID мастера не найден. Перезапустите бота.</div>`;
         return;
     }
 
@@ -24,13 +31,14 @@ async function init() {
     try {
         await loadData();
     } catch (e) {
-        // Выводим ошибку прямо на экран для диагностики
+        console.error("🛑 Ошибка инициализации:", e);
+        if (titleEl) titleEl.innerText = "Ошибка системы";
+
         const container = document.getElementById('appts-container') || document.body;
         container.innerHTML = `
-            <div style="padding:20px; text-align:center; color:#FF3B30;">
-                <b style="font-size:18px;">🛑 Ошибка загрузки:</b><br>
-                <code style="display:block; margin-top:10px; background:#eee; padding:10px; border-radius:5px;">${e.message}</code>
-                <button onclick="location.reload()" class="btn" style="margin-top:15px;">🔄 Повторить</button>
+            <div style="padding:20px; text-align:center; color:var(--danger);">
+                <b>🛑 Ошибка загрузки данных</b><br>
+                <small>${e.message}</small>
             </div>
         `;
     }
@@ -41,11 +49,9 @@ function setupTabs() {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-
             tab.classList.add('active');
             const sectionId = tab.getAttribute('data-tab');
-            const section = document.getElementById(sectionId);
-            if (section) section.classList.add('active');
+            document.getElementById(sectionId)?.classList.add('active');
         });
     });
 }
@@ -57,8 +63,8 @@ function setupListeners() {
 }
 
 async function loadData() {
-    const header = document.getElementById('header-title');
-    if(header) header.innerText = 'Обновление...';
+    const titleEl = document.getElementById('header-title');
+    if (titleEl) titleEl.innerText = "Обновление...";
 
     const [mResult, aResult, sResult] = await Promise.all([
         _sb.from('masters').select('*').eq('telegram_id', state.masterId).single(),
@@ -66,7 +72,9 @@ async function loadData() {
         _sb.from('services').select('*').eq('master_id', state.masterId).order('name')
     ]);
 
-    if (!mResult.data) throw new Error("Мастер не найден");
+    if (mResult.error || !mResult.data) {
+        throw new Error("Мастер не найден в базе данных");
+    }
 
     state.masterInfo = mResult.data;
     state.appointments = aResult.data || [];
@@ -76,35 +84,31 @@ async function loadData() {
 }
 
 function updateUI() {
+    // 1. Заголовок
     const titleEl = document.getElementById('header-title');
     if (titleEl) titleEl.innerText = state.masterInfo.studio_name || 'Кабинет мастера';
 
+    // 2. Список записей
     const apptsContainer = document.getElementById('appts-container');
     if (apptsContainer) {
         renderApptsList(apptsContainer, state.appointments, {
             onDelete: async (id) => {
-                if (await confirmAction("Отменить запись?")) await cancelAppointment(id);
+                if (await confirmAction("Отменить эту запись?")) await cancelAppointment(id);
             },
             onCopyPhone: (phone) => {
-                if(phone) {
-                   if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                   window.open(`tel:${phone}`, '_self');
+                if (phone) {
+                    navigator.clipboard.writeText(phone);
+                    showAlert("Номер скопирован!");
                 }
             }
         });
     }
 
-    // Безопасное заполнение полей профиля
-    const fields = {
-        'pf-name': state.masterInfo.studio_name,
-        'pf-address': state.masterInfo.address,
-        'pf-about': state.masterInfo.about
-    };
-
-    for (const [id, val] of Object.entries(fields)) {
-        const el = document.getElementById(id);
-        if (el) el.value = val || '';
-    }
+    // 3. Данные профиля
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    setVal('pf-name', state.masterInfo.studio_name);
+    setVal('pf-address', state.masterInfo.address);
+    setVal('pf-about', state.masterInfo.about);
 
     renderServices();
 }
@@ -115,7 +119,7 @@ function renderServices() {
     container.innerHTML = '';
 
     if (state.services.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:20px; color:#999">Услуг пока нет</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:20px; color:#999">У вас пока нет услуг</div>`;
         return;
     }
 
@@ -140,25 +144,26 @@ function renderServices() {
 async function addService() {
     const name = document.getElementById('srv-name')?.value;
     const price = document.getElementById('srv-price')?.value;
-    const duration = document.getElementById('srv-duration')?.value || 60;
-    const category = document.getElementById('srv-category')?.value || 'Основное';
-    const desc = document.getElementById('srv-desc')?.value || '';
-
     if (!name || !price) return showAlert("Введите название и цену");
 
     const { data, error } = await _sb.from('services').insert({
         master_id: state.masterId,
-        name, price, duration_min: duration,
-        category, description: desc, is_active: true
+        name,
+        price,
+        duration_min: document.getElementById('srv-duration')?.value || 60,
+        category: document.getElementById('srv-category')?.value || 'Общее',
+        is_active: true
     }).select();
 
-    if (error) return showAlert("Ошибка при создании");
+    if (error) return showAlert("Ошибка при добавлении");
 
-    document.getElementById('srv-name').value = '';
-    document.getElementById('srv-price').value = '';
     state.services.push(data[0]);
     renderServices();
-    showAlert("Услуга добавлена!");
+    showAlert("Услуга добавлена");
+
+    // Очистка
+    document.getElementById('srv-name').value = '';
+    document.getElementById('srv-price').value = '';
 }
 
 async function deleteService(id) {
@@ -171,24 +176,23 @@ async function deleteService(id) {
 
 async function saveProfile() {
     const name = document.getElementById('pf-name')?.value;
-    const address = document.getElementById('pf-address')?.value;
-    const about = document.getElementById('pf-about')?.value;
-
     if (!name) return showAlert("Название студии обязательно");
 
     const { error } = await _sb.from('masters').update({
-        studio_name: name, address: address, about: about
+        studio_name: name,
+        address: document.getElementById('pf-address')?.value,
+        about: document.getElementById('pf-about')?.value
     }).eq('telegram_id', state.masterId);
 
     if (error) return showAlert("Ошибка сохранения");
     showAlert("Профиль сохранен!");
-    const title = document.getElementById('header-title');
-    if (title) title.innerText = name;
+    const titleEl = document.getElementById('header-title');
+    if (titleEl) titleEl.innerText = name;
 }
 
 async function cancelAppointment(id) {
     const { error } = await _sb.from('appointments').update({ status: 'cancelled' }).eq('id', id);
-    if (error) return showAlert("Ошибка БД");
+    if (error) return showAlert("Ошибка в базе");
     const appt = state.appointments.find(a => a.id === id);
     if (appt) appt.status = 'cancelled';
     updateUI();
