@@ -234,21 +234,22 @@ async function saveProfile() {
 
     // Обновляем по telegram_id
     const { error } = await _sb.from('masters').update({
-        studio_name: name, 
-        address: address, 
-        about: about
-    }).eq('telegram_id', state.masterInfo.telegram_id); // <--- Вернули telegram_id
+        studio_name: name,
+        address: address,
+        about_text: about // <--- ИСПРАВЛЕНО: в БД поле называется about_text
+    }).eq('telegram_id', state.masterInfo.telegram_id);
 
     if (error) {
         console.error("Save Profile Error:", error);
-        return showAlert("Ошибка сохранения");
+        return showAlert("Ошибка сохранения: " + error.message);
     }
     
     showAlert("Профиль сохранен!");
     
+    // Обновляем локальный стейт, чтобы не перезагружать страницу
     state.masterInfo.studio_name = name;
     state.masterInfo.address = address;
-    state.masterInfo.about = about;
+    state.masterInfo.about_text = about; // <--- ИСПРАВЛЕНО: обновляем правильное поле в стейте
     
     const title = document.getElementById('header-title');
     if (title) title.innerText = name;
