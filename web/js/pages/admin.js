@@ -150,7 +150,7 @@ function renderServices() {
         div.innerHTML = `
             <div>
                 <div style="font-weight:600;">${srv.name}</div>
-                <div style="font-size:13px; color:#888;">${srv.price} ₸ • ${srv.duration_min || 60} мин</div>
+                <div style="font-size:13px; color:#888;">${srv.price} ₸ • ${srv.duration || 60} мин</div>
             </div>
         `;
         const btnDel = document.createElement('button');
@@ -189,7 +189,7 @@ async function addService() {
 
     if (error) {
         console.error("Add Service Error:", error);
-        // Если ошибка говорит про колонку duration_min, возможно в БД она называется duration
+        // Если ошибка говорит про колонку duration, возможно в БД она называется duration
         // По вашим логам: "duration":300. Если insert падает, замените duration_min на duration
         return showAlert("Ошибка при создании: " + error.message);
     }
