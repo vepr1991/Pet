@@ -3,8 +3,8 @@ import { tg, initTg, showAlert, confirmAction } from '../core/tg.js';
 import { renderApptsList } from '../ui/appts.js';
 
 let state = {
-    masterId: null, // Это Telegram ID из URL
-    masterInfo: null, // Здесь будет лежать полный объект мастера из БД (с внутренним id)
+    masterId: null, // ID из URL (строка)
+    masterInfo: null, // Объект мастера из БД
     appointments: [],
     services: []
 };
@@ -12,10 +12,11 @@ let state = {
 async function init() {
     initTg();
     const params = new URLSearchParams(window.location.search);
+    // Получаем ID мастера из параметров или данных телеграм
     state.masterId = params.get('master_id') || params.get('master') || tg.initDataUnsafe?.user?.id;
 
     if (!state.masterId) {
-        document.body.innerHTML = `<div style="padding:50px; text-align:center; color:red;">❌ ID мастера не найден в URL и в данных TG.</div>`;
+        document.body.innerHTML = `<div style="padding:50px; text-align:center; color:red;">❌ ID мастера не найден. Запустите через бота.</div>`;
         return;
     }
 
@@ -25,12 +26,12 @@ async function init() {
     try {
         await loadData();
     } catch (e) {
-        // Выводим ошибку прямо на экран для диагностики
+        console.error(e);
         const container = document.getElementById('appts-container') || document.body;
         container.innerHTML = `
             <div style="padding:20px; text-align:center; color:#FF3B30;">
                 <b style="font-size:18px;">🛑 Ошибка загрузки:</b><br>
-                <code style="display:block; margin-top:10px; background:#eee; padding:10px; border-radius:5px;">${e.message}</code>
+                <div style="margin-top:10px; font-size:13px;">${e.message}</div>
                 <button onclick="location.reload()" class="btn" style="margin-top:15px;">🔄 Повторить</button>
             </div>
         `;
@@ -48,7 +49,6 @@ function setupTabs() {
             const section = document.getElementById(sectionId);
             if (section) section.classList.add('active');
             
-            // Haptic feedback
             if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
         });
     });
@@ -65,30 +65,33 @@ async function loadData() {
     const header = document.getElementById('header-title');
     if(header) header.innerText = 'Обновление...';
 
-    // 1. Сначала находим запись мастера по его Telegram ID
-    // Это решает проблему "Кризиса идентичности"
+    // 1. Загружаем профиль мастера по telegram_id
+    // Мы ищем именно по telegram_id, так как это основной ключ в вашей логике
     const { data: masterData, error: mError } = await _sb
         .from('masters')
         .select('*')
         .eq('telegram_id', state.masterId)
         .single();
 
-    if (mError || !masterData) throw new Error("Мастер не найден. Пройдите регистрацию в боте.");
+    if (mError || !masterData) {
+        throw new Error("Мастер не найден в базе. Попробуйте нажать /start в боте.");
+    }
 
-    // Сохраняем ВСЕ данные мастера, включая его внутренний ID
     state.masterInfo = masterData;
-    const internalId = masterData.id; 
+    
+    // ВАЖНО: Берем ID прямо из базы данных для надежности (число)
+    const reliableMasterId = masterData.telegram_id;
 
-    // 2. Загружаем данные, используя ВНУТРЕННИЙ ID
+    // 2. Загружаем записи и услуги, используя этот reliableMasterId
     const [aResult, sResult] = await Promise.all([
         _sb.from('appointments')
            .select('*')
-           .eq('master_id', internalId) // Исправлено
+           .eq('master_id', reliableMasterId) // <--- Ссылка на telegram_id
            .order('date_time', { ascending: true }),
         
         _sb.from('services')
            .select('*')
-           .eq('master_id', internalId) // Исправлено
+           .eq('master_id', reliableMasterId) // <--- Ссылка на telegram_id
            .order('name')
     ]);
 
@@ -117,7 +120,6 @@ function updateUI() {
         });
     }
 
-    // Безопасное заполнение полей профиля
     const fields = {
         'pf-name': state.masterInfo.studio_name,
         'pf-address': state.masterInfo.address,
@@ -148,7 +150,7 @@ function renderServices() {
         div.innerHTML = `
             <div>
                 <div style="font-weight:600;">${srv.name}</div>
-                <div style="font-size:13px; color:#888;">${srv.price} ₸ • ${srv.duration_min} мин</div>
+                <div style="font-size:13px; color:#888;">${srv.price} ₸ • ${srv.duration_min || 60} мин</div>
             </div>
         `;
         const btnDel = document.createElement('button');
@@ -170,14 +172,16 @@ async function addService() {
 
     if (!name || !price) return showAlert("Введите название и цену");
     
-    // Проверка на наличие ID
-    if (!state.masterInfo || !state.masterInfo.id) return showAlert("Ошибка: Профиль мастера не загружен");
+    // Используем telegram_id из загруженного профиля
+    if (!state.masterInfo || !state.masterInfo.telegram_id) {
+        return showAlert("Ошибка: Профиль мастера не загружен");
+    }
 
     const { data, error } = await _sb.from('services').insert({
-        master_id: state.masterInfo.id, // Исправлено: используем внутренний ID
+        master_id: state.masterInfo.telegram_id, // <--- Вернули telegram_id
         name, 
         price, 
-        duration_min: duration,
+        duration_min: duration, // Убедитесь, что колонка в БД называется так (в логах было duration, проверьте)
         category, 
         description: desc, 
         is_active: true
@@ -185,17 +189,18 @@ async function addService() {
 
     if (error) {
         console.error("Add Service Error:", error);
-        return showAlert("Ошибка при создании");
+        // Если ошибка говорит про колонку duration_min, возможно в БД она называется duration
+        // По вашим логам: "duration":300. Если insert падает, замените duration_min на duration
+        return showAlert("Ошибка при создании: " + error.message);
     }
 
+    // Очистка
     document.getElementById('srv-name').value = '';
     document.getElementById('srv-price').value = '';
     
-    // Добавляем новую услугу в локальный стейт и перерисовываем
     if (data && data[0]) {
         state.services.push(data[0]);
     } else {
-        // Fallback если select() не вернул данные, хотя вставка прошла
         await loadData(); 
         return;
     }
@@ -207,7 +212,6 @@ async function addService() {
 async function deleteService(id) {
     if (!await confirmAction("Удалить услугу?")) return;
     
-    // Здесь удаление идет по ID услуги, мастер не нужен, но RLS может требовать
     const { error } = await _sb.from('services').delete().eq('id', id);
     
     if (error) {
@@ -226,13 +230,14 @@ async function saveProfile() {
     const about = document.getElementById('pf-about')?.value;
 
     if (!name) return showAlert("Название студии обязательно");
-    if (!state.masterInfo || !state.masterInfo.id) return showAlert("Ошибка: Профиль не загружен");
+    if (!state.masterInfo || !state.masterInfo.telegram_id) return showAlert("Ошибка: Профиль не загружен");
 
+    // Обновляем по telegram_id
     const { error } = await _sb.from('masters').update({
         studio_name: name, 
         address: address, 
         about: about
-    }).eq('id', state.masterInfo.id); // Исправлено: обновляем по PK
+    }).eq('telegram_id', state.masterInfo.telegram_id); // <--- Вернули telegram_id
 
     if (error) {
         console.error("Save Profile Error:", error);
@@ -241,7 +246,6 @@ async function saveProfile() {
     
     showAlert("Профиль сохранен!");
     
-    // Обновляем локальный стейт
     state.masterInfo.studio_name = name;
     state.masterInfo.address = address;
     state.masterInfo.about = about;
