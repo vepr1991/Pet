@@ -181,7 +181,7 @@ async function addService() {
         master_id: state.masterInfo.telegram_id, // <--- Вернули telegram_id
         name, 
         price, 
-        duration_min: duration, // Убедитесь, что колонка в БД называется так (в логах было duration, проверьте)
+        duration: duration, // Убедитесь, что колонка в БД называется так (в логах было duration, проверьте)
         category, 
         description: desc, 
         is_active: true
