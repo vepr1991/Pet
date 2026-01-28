@@ -123,7 +123,7 @@ function updateUI() {
     const fields = {
         'pf-name': state.masterInfo.studio_name,
         'pf-address': state.masterInfo.address,
-        'pf-about': state.masterInfo.about
+        'pf-about': state.masterInfo.about_text
     };
 
     for (const [id, val] of Object.entries(fields)) {
