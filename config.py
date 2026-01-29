@@ -13,6 +13,10 @@ ADMIN_ID = os.getenv("ADMIN_ID")
 # --- Настройки базы данных ---
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
+
+if not SUPABASE_JWT_SECRET:
+    print("⚠️ ВНИМАНИЕ: Не найден SUPABASE_JWT_SECRET (нужен для генерации токенов)!")
 
 # --- Проверки (чтобы не падать с непонятными ошибками) ---
 if not TOKEN:

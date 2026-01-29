@@ -1,3 +1,4 @@
 aiogram
 python-dotenv
 supabase==2.10.0
+PyJWT==2.8.0

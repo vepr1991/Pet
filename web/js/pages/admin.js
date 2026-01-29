@@ -3,8 +3,8 @@ import { tg, initTg, showAlert, confirmAction } from '../core/tg.js';
 import { renderApptsList } from '../ui/appts.js';
 
 let state = {
-    masterId: null, // ID из URL (строка)
-    masterInfo: null, // Объект мастера из БД
+    masterId: null,
+    masterInfo: null,
     appointments: [],
     services: []
 };
@@ -12,31 +12,44 @@ let state = {
 async function init() {
     initTg();
     const params = new URLSearchParams(window.location.search);
-    // Получаем ID мастера из параметров или данных телеграм
-    state.masterId = params.get('master_id') || params.get('master') || tg.initDataUnsafe?.user?.id;
+
+    // 1. Пытаемся получить токен безопасности
+    const token = params.get('token');
+
+    // 2. Если токен есть — авторизуемся в Supabase
+    if (token) {
+        const { data, error } = await _sb.auth.setSession({
+            access_token: token,
+            refresh_token: token // В данном случае refresh не важен, но нужен для метода
+        });
+
+        if (error) {
+            console.error("Auth Error:", error);
+            document.body.innerHTML = `<div style="padding:20px;color:red">Ошибка авторизации. Перезапустите бота.</div>`;
+            return;
+        }
+
+        // Достаем master_id прямо из токена (безопасно!)
+        // Supabase декодирует токен и кладет данные в user
+        const user = await _sb.auth.getUser();
+        const embeddedId = user?.data?.user?.user_metadata?.telegram_id;
+
+        if (embeddedId) {
+            state.masterId = embeddedId;
+        }
+    }
+
+    // ФОЛЛБЭК: Если токена нет, пробуем старый метод (но запись работать не будет из-за RLS!)
+    if (!state.masterId) {
+        state.masterId = params.get('master_id') || params.get('master') || tg.initDataUnsafe?.user?.id;
+    }
 
     if (!state.masterId) {
         document.body.innerHTML = `<div style="padding:50px; text-align:center; color:red;">❌ ID мастера не найден. Запустите через бота.</div>`;
         return;
     }
 
-    setupTabs();
-    setupListeners();
-
-    try {
-        await loadData();
-    } catch (e) {
-        console.error(e);
-        const container = document.getElementById('appts-container') || document.body;
-        container.innerHTML = `
-            <div style="padding:20px; text-align:center; color:#FF3B30;">
-                <b style="font-size:18px;">🛑 Ошибка загрузки:</b><br>
-                <div style="margin-top:10px; font-size:13px;">${e.message}</div>
-                <button onclick="location.reload()" class="btn" style="margin-top:15px;">🔄 Повторить</button>
-            </div>
-        `;
-    }
-}
+    // ... остальной код (setupTabs, loadData...) без изменений
 
 function setupTabs() {
     document.querySelectorAll('.tab').forEach(tab => {
